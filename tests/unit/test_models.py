@@ -100,3 +100,63 @@ class TestTodoItemEquality:
 
         # Act & Assert
         assert todo1 != todo2, "不同 ID 的 TodoItem 不应该相等"
+
+
+class TestTodoItemPriority:
+    """测试 TodoItem 优先级功能"""
+
+    def test_create_todo_item_with_valid_priority(self):
+        """测试：使用有效优先级创建 TodoItem 应成功"""
+        # Arrange & Act
+        todo = TodoItem(id=1, text="测试", done=False, priority="high")
+
+        # Assert
+        assert todo.priority == "high", "TodoItem priority 应该等于 'high'"
+
+    def test_create_todo_item_default_priority_is_medium(self):
+        """测试：不指定优先级时应默认为 medium"""
+        # Arrange & Act
+        todo = TodoItem(id=1, text="测试", done=False)
+
+        # Assert
+        assert todo.priority == "medium", "默认优先级应该是 'medium'"
+
+    def test_create_todo_item_with_invalid_priority_raises_error(self):
+        """测试：使用无效优先级应抛出异常"""
+        # Arrange & Act & Assert
+        with pytest.raises(ValueError, match="优先级必须是.*之一"):
+            TodoItem(id=1, text="测试", done=False, priority="urgent")
+
+    def test_to_dict_includes_priority(self):
+        """测试：to_dict 应包含 priority 字段"""
+        # Arrange
+        todo = TodoItem(id=1, text="测试", done=False, priority="low")
+
+        # Act
+        result = todo.to_dict()
+
+        # Assert
+        assert "priority" in result, "to_dict 应包含 priority 字段"
+        assert result["priority"] == "low", "priority 应该等于 'low'"
+
+    def test_from_dict_with_priority(self):
+        """测试：from_dict 应正确解析 priority"""
+        # Arrange
+        data = {"id": 1, "text": "测试", "done": False, "priority": "high"}
+
+        # Act
+        todo = TodoItem.from_dict(data)
+
+        # Assert
+        assert todo.priority == "high", "from_dict 应正确解析 priority"
+
+    def test_from_dict_without_priority_defaults_to_medium(self):
+        """测试：from_dict 缺少 priority 时应默认为 medium"""
+        # Arrange
+        data = {"id": 1, "text": "测试", "done": False}
+
+        # Act
+        todo = TodoItem.from_dict(data)
+
+        # Assert
+        assert todo.priority == "medium", "缺少 priority 时应默认为 'medium'"
