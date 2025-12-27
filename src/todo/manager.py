@@ -6,7 +6,7 @@
 import json
 from pathlib import Path
 from typing import List, Optional
-from src.todo.models import TodoItem
+from .models import TodoItem
 
 
 class TodoManager:

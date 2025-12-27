@@ -8,7 +8,7 @@ import json
 import pytest
 from pathlib import Path
 from unittest.mock import patch, mock_open
-from src.todo.manager import TodoManager
+from todo.manager import TodoManager
 
 
 class TestTodoManagerInit:

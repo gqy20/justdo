@@ -5,7 +5,7 @@
 
 import sys
 import argparse
-from src.todo.manager import TodoManager
+from .manager import TodoManager
 
 
 def main():

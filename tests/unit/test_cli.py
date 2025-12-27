@@ -6,13 +6,13 @@
 import pytest
 from unittest.mock import patch, MagicMock
 from io import StringIO
-from src.todo.cli import main
+from todo.cli import main
 
 
 class TestCLIAddCommand:
     """测试 add 命令"""
 
-    @patch("src.todo.cli.TodoManager")
+    @patch("todo.cli.TodoManager")
     @patch("sys.argv", ["todo.py", "add", "学习 Python"])
     def test_add_command_calls_manager_add(self, mock_manager_class):
         """测试：add 命令应调用 manager.add()"""
@@ -27,7 +27,7 @@ class TestCLIAddCommand:
         # Assert
         mock_manager.add.assert_called_once_with("学习 Python")
 
-    @patch("src.todo.cli.TodoManager")
+    @patch("todo.cli.TodoManager")
     @patch("sys.argv", ["todo.py", "add", "  空格测试  "])
     def test_add_trims_whitespace(self, mock_manager_class):
         """测试：add 应去除文本首尾空格"""
@@ -47,7 +47,7 @@ class TestCLIAddCommand:
 class TestCLIListCommand:
     """测试 list 命令"""
 
-    @patch("src.todo.cli.TodoManager")
+    @patch("todo.cli.TodoManager")
     @patch("sys.argv", ["todo.py", "list"])
     def test_list_displays_all_todos(self, mock_manager_class):
         """测试：list 命令应显示所有任务"""
@@ -67,7 +67,7 @@ class TestCLIListCommand:
         assert "任务 1" in output
         assert "任务 2" in output
 
-    @patch("src.todo.cli.TodoManager")
+    @patch("todo.cli.TodoManager")
     @patch("sys.argv", ["todo.py", "list"])
     def test_list_empty_shows_message(self, mock_manager_class):
         """测试：空列表应显示提示信息"""
@@ -88,7 +88,7 @@ class TestCLIListCommand:
 class TestCLIDoneCommand:
     """测试 done 命令"""
 
-    @patch("src.todo.cli.TodoManager")
+    @patch("todo.cli.TodoManager")
     @patch("sys.argv", ["todo.py", "done", "1"])
     def test_mark_done_calls_manager(self, mock_manager_class):
         """测试：done 命令应调用 manager.mark_done()"""
@@ -103,7 +103,7 @@ class TestCLIDoneCommand:
         # Assert
         mock_manager.mark_done.assert_called_once_with(1)
 
-    @patch("src.todo.cli.TodoManager")
+    @patch("todo.cli.TodoManager")
     @patch("sys.argv", ["todo.py", "done", "abc"])
     def test_done_with_invalid_id_shows_error(self, mock_manager_class):
         """测试：done 命令使用无效 ID 应显示错误（argparse 处理）"""
@@ -120,7 +120,7 @@ class TestCLIDoneCommand:
 class TestCLIDeleteCommand:
     """测试 delete 命令"""
 
-    @patch("src.todo.cli.TodoManager")
+    @patch("todo.cli.TodoManager")
     @patch("sys.argv", ["todo.py", "delete", "2"])
     def test_delete_calls_manager(self, mock_manager_class):
         """测试：delete 命令应调用 manager.delete()"""
@@ -135,7 +135,7 @@ class TestCLIDeleteCommand:
         # Assert
         mock_manager.delete.assert_called_once_with(2)
 
-    @patch("src.todo.cli.TodoManager")
+    @patch("todo.cli.TodoManager")
     @patch("sys.argv", ["todo.py", "delete", "999"])
     def test_delete_nonexistent_shows_error(self, mock_manager_class):
         """测试：删除不存在的任务应显示错误"""
@@ -155,7 +155,7 @@ class TestCLIDeleteCommand:
 class TestCLIClearCommand:
     """测试 clear 命令"""
 
-    @patch("src.todo.cli.TodoManager")
+    @patch("todo.cli.TodoManager")
     @patch("sys.argv", ["todo.py", "clear"])
     def test_clear_calls_manager(self, mock_manager_class):
         """测试：clear 命令应调用 manager.clear()"""

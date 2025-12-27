@@ -4,7 +4,7 @@
 """
 
 import pytest
-from src.todo.models import TodoItem
+from todo.models import TodoItem
 
 
 class TestTodoItemCreation:
