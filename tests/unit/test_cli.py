@@ -43,6 +43,36 @@ class TestCLIAddCommand:
         # Assert
         mock_manager.add.assert_called_once_with("空格测试")
 
+    @patch("todo.cli.TodoManager")
+    @patch("sys.argv", ["todo.py", "add", "紧急任务", "-p", "high"])
+    def test_add_with_priority_flag(self, mock_manager_class):
+        """测试：add -p high 应调用 manager.add(text, priority='high')"""
+        # Arrange
+        mock_manager = MagicMock()
+        mock_manager_class.return_value = mock_manager
+
+        # Act
+        with patch("sys.stdout", new_callable=StringIO):
+            main()
+
+        # Assert
+        mock_manager.add.assert_called_once_with("紧急任务", priority="high")
+
+    @patch("todo.cli.TodoManager")
+    @patch("sys.argv", ["todo.py", "add", "任务", "--priority", "low"])
+    def test_add_with_priority_long_flag(self, mock_manager_class):
+        """测试：add --priority low 应调用 manager.add(text, priority='low')"""
+        # Arrange
+        mock_manager = MagicMock()
+        mock_manager_class.return_value = mock_manager
+
+        # Act
+        with patch("sys.stdout", new_callable=StringIO):
+            main()
+
+        # Assert
+        mock_manager.add.assert_called_once_with("任务", priority="low")
+
 
 class TestCLIListCommand:
     """测试 list 命令"""
