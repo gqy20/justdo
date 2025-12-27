@@ -7,7 +7,7 @@
 ## 安装
 
 ```bash
-pip install do-it
+pip install doit-cli
 ```
 
 ## 使用方法
@@ -141,7 +141,7 @@ do-it/
 ## 链接
 
 - **GitHub**: https://github.com/gqy20/todo-cli
-- **PyPI**: https://pypi.org/project/do-it/
+- **PyPI**: https://pypi.org/project/doit-cli/
 - **文档**: http://home.gqy20.top/todo-cli/
 
 ## License
