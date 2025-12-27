@@ -1,4 +1,4 @@
-# do-it - Just do it! 🚀
+# justdo - Just do it! 🚀
 
 一个用 TDD 方式开发的简单命令行待办事项工具，支持任务优先级管理。
 
@@ -7,7 +7,7 @@
 ## 安装
 
 ```bash
-pip install doit-cli
+pip install justdo
 ```
 
 ## 使用方法
@@ -16,33 +16,33 @@ pip install doit-cli
 
 ```bash
 # 添加任务（默认中等优先级）
-doit add "购买牛奶"
+jd add "购买牛奶"
 
 # 列出所有任务（按 ID 排序）
-doit list
+jd list
 
 # 标记任务为完成
-doit done 1
+jd done 1
 
 # 删除任务
-doit delete 1
+jd delete 1
 
 # 清空所有已完成的任务
-doit clear
+jd clear
 ```
 
 ### 优先级功能
 
 ```bash
 # 添加高优先级任务
-doit add "紧急任务" -p high
-doit add "紧急任务" --priority high
+jd add "紧急任务" -p high
+jd add "紧急任务" --priority high
 
 # 添加低优先级任务
-doit add "不重要的事" -p low
+jd add "不重要的事" -p low
 
 # 按优先级排序显示（高优先级在前）
-doit list --sort-by priority
+jd list --sort-by priority
 ```
 
 ### 优先级说明
@@ -56,13 +56,13 @@ doit list --sort-by priority
 ### 显示示例
 
 ```bash
-$ doit add "完成文档" -p high
+$ jd add "完成文档" -p high
 ✓ 已添加任务 [1] 🔴: 完成文档
 
-$ doit add "整理桌面" -p low
+$ jd add "整理桌面" -p low
 ✓ 已添加任务 [2] 🟢: 整理桌面
 
-$ doit list --sort-by priority
+$ jd list --sort-by priority
 [1] [ ] 🔴 高优先级任务
 [2] [ ] 🟡 中优先级任务
 [3] [ ] 🟢 低优先级任务
@@ -117,11 +117,11 @@ do-it/
 
 | 命令 | 说明 |
 |------|------|
-| `doit add <text> [-p PRIORITY]` | 添加新任务，可指定优先级 |
-| `doit list [--sort-by]` | 列出任务，支持按 ID 或优先级排序 |
-| `doit done <id>` | 标记指定 ID 的任务为完成 |
-| `doit delete <id>` | 删除指定 ID 的任务 |
-| `doit clear` | 清除所有已完成的任务 |
+| `jd add <text> [-p PRIORITY]` | 添加新任务，可指定优先级 |
+| `jd list [--sort-by]` | 列出任务，支持按 ID 或优先级排序 |
+| `jd done <id>` | 标记指定 ID 的任务为完成 |
+| `jd delete <id>` | 删除指定 ID 的任务 |
+| `jd clear` | 清除所有已完成的任务 |
 
 ## 测试
 
@@ -131,17 +131,18 @@ do-it/
 - 业务逻辑测试（17 个）- 包括优先级参数
 - CLI 命令测试（12 个）- 包括优先级显示和排序
 
-## 为什么叫 do-it？
+## 为什么叫 justdo？
 
 - ✅ **简洁有力** - 两个音节，朗朗上口
 - ✅ **寓意完美** - "Just do it!" 正是待办事项的核心精神
-- ✅ **易记易搜** - 用户搜索 "do it todo" 很容易找到
+- ✅ **命令简短** - `jd` 两个字母，快速输入
+- ✅ **易记易搜** - 用户搜索 "just do" 很容易找到
 - ✅ **国际化** - 英语通用，全球用户都能理解
 
 ## 链接
 
 - **GitHub**: https://github.com/gqy20/todo-cli
-- **PyPI**: https://pypi.org/project/doit-cli/
+- **PyPI**: https://pypi.org/project/justdo/
 - **文档**: http://home.gqy20.top/todo-cli/
 
 ## License
