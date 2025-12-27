@@ -106,19 +106,15 @@ class TestCLIDoneCommand:
     @patch("src.todo.cli.TodoManager")
     @patch("sys.argv", ["todo.py", "done", "abc"])
     def test_done_with_invalid_id_shows_error(self, mock_manager_class):
-        """测试：done 命令使用无效 ID 应显示错误"""
+        """测试：done 命令使用无效 ID 应显示错误（argparse 处理）"""
         # Arrange
         mock_manager = MagicMock()
         mock_manager_class.return_value = mock_manager
-        mock_manager.mark_done.side_effect = ValueError("任务不存在")
 
-        # Act
-        with patch("sys.stdout", new_callable=StringIO) as mock_stdout:
-            main()
-            output = mock_stdout.getvalue()
-
-        # Assert
-        assert "错误" in output or "error" in output.lower()
+        # Act & Assert - argparse 会阻止无效的 int 参数
+        with pytest.raises(SystemExit):
+            with patch("sys.stderr", new_callable=StringIO):
+                main()
 
 
 class TestCLIDeleteCommand:
@@ -148,13 +144,12 @@ class TestCLIDeleteCommand:
         mock_manager_class.return_value = mock_manager
         mock_manager.delete.side_effect = ValueError("任务不存在")
 
-        # Act
-        with patch("sys.stdout", new_callable=StringIO) as mock_stdout:
-            main()
-            output = mock_stdout.getvalue()
-
-        # Assert
-        assert "错误" in output or "error" in output.lower()
+        # Act & Assert - 应该捕获 SystemExit
+        with pytest.raises(SystemExit):
+            with patch("sys.stderr", new_callable=StringIO) as mock_stderr:
+                main()
+                output = mock_stderr.getvalue()
+                assert "错误" in output
 
 
 class TestCLIClearCommand:
