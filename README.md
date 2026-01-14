@@ -155,7 +155,7 @@ uv run python -m pytest --cov=justdo
 
 # 安装包到本地
 uv build
-pip install dist/justdo-0.1.2-py3-none-any.whl
+pip install dist/justdo-0.1.3-py3-none-any.whl
 ```
 
 ## 项目结构
@@ -164,7 +164,7 @@ pip install dist/justdo-0.1.2-py3-none-any.whl
 justdo/
 ├── src/
 │   └── justdo/
-│       ├── __init__.py       # 包导出，版本 0.1.2
+│       ├── __init__.py       # 包导出，版本 0.1.3
 │       ├── models.py         # TodoItem 数据模型
 │       ├── manager.py        # TodoManager 核心逻辑
 │       ├── cli.py            # 命令行接口

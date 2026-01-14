@@ -227,7 +227,7 @@ jd --chat "帮我分析今天的工作"
 python -m build
 
 # 安装本地构建
-pip install dist/justdo-0.1.2-py3-none-any.whl
+pip install dist/justdo-0.1.3-py3-none-any.whl
 ```
 
 ### 发布到 PyPI
