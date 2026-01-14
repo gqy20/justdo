@@ -11,8 +11,8 @@ from pathlib import Path
 from datetime import datetime
 from unittest.mock import patch
 
-from todo.user_profile import UserProfile
-from todo.models import TodoItem
+from justdo.user_profile import UserProfile
+from justdo.models import TodoItem
 
 
 class TestUserProfileInit:
@@ -85,7 +85,7 @@ class TestUserProfileRecordTask:
             # Assert
             assert profile.data['stats']['completed_tasks'] == 1
 
-    @patch('todo.user_profile.datetime')
+    @patch('justdo.user_profile.datetime')
     def test_record_complete_updates_hourly_activity(self, mock_dt):
         """测试：完成应更新时段活动"""
         mock_dt.now.return_value.hour = 14
@@ -101,7 +101,7 @@ class TestUserProfileRecordTask:
             # Assert
             assert profile.data['hourly_activity'][14] == 1
 
-    @patch('todo.user_profile.datetime')
+    @patch('justdo.user_profile.datetime')
     def test_record_complete_updates_streak(self, mock_dt):
         """测试：完成应更新连续天数"""
         mock_dt.now.return_value = datetime(2025, 1, 14, 14, 0, 0)
@@ -190,7 +190,7 @@ class TestUserProfileStatsCalc:
             # Assert
             assert hours == []
 
-    @patch('todo.user_profile.datetime')
+    @patch('justdo.user_profile.datetime')
     def test_get_peak_hours_returns_top_hours(self, mock_dt):
         """测试：返回活跃时段"""
         mock_dt.now.return_value.hour = 14
@@ -215,7 +215,7 @@ class TestUserProfileStatsCalc:
 class TestUserProfileContext:
     """测试 AI 上下文生成"""
 
-    @patch('todo.user_profile.datetime')
+    @patch('justdo.user_profile.datetime')
     def test_get_context_for_ai(self, mock_dt):
         """测试：生成 AI 上下文字符串"""
         mock_dt.now.return_value = datetime(2025, 1, 14, 14, 0, 0)

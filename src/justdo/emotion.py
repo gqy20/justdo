@@ -196,7 +196,7 @@ def trigger_unified_analysis(
     Returns:
         包含 user_type, strengths_weaknesses, risk_alerts, task_feedback 的字典
     """
-    from todo.ai import get_ai_handler
+    from justdo.ai import get_ai_handler
 
     # 格式化提示词
     prompt = PROMPT_UNIFIED_ANALYSIS.format(
@@ -298,7 +298,7 @@ def trigger_feedback_stream(
     Yields:
         文本片段
     """
-    from todo.ai import get_ai_handler
+    from justdo.ai import get_ai_handler
 
     # 使用简化的 prompt，只关注任务反馈
     simplified_prompt = f"""你是用户贴心的任务助手，用户刚完成了一个任务。
@@ -389,7 +389,7 @@ def trigger_cli_feedback(
     Returns:
         反馈文本字符串
     """
-    from todo.ai import get_ai_handler
+    from justdo.ai import get_ai_handler
 
     # 构建 prompt（根据场景）
     if scenario == "task_completed":
@@ -460,7 +460,7 @@ def trigger_cli_feedback_stream(
     Yields:
         反馈文本片段
     """
-    from todo.ai import get_ai_handler
+    from justdo.ai import get_ai_handler
 
     prompt = f"""用户有 {incomplete_count} 个未完成任务，其中 {high_priority_count} 个高优先级。
 

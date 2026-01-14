@@ -5,18 +5,18 @@
 
 import pytest
 from unittest.mock import Mock, patch, MagicMock, AsyncMock
-from todo.emotion import EmotionEngine
+from justdo.emotion import EmotionEngine
 
 
 class TestEmotionEngineInit:
     """测试 EmotionEngine 初始化"""
 
-    @patch('todo.emotion.OpenAI')
+    @patch('justdo.emotion.OpenAI')
     @patch.dict('os.environ', {}, clear=True)
     def test_init_with_valid_config(self, mock_openai):
         """测试：有效配置应创建 EmotionEngine"""
         # Arrange
-        from todo.ai import AIConfig
+        from justdo.ai import AIConfig
         config = AIConfig(api_key="test-key")
 
         # Act
@@ -26,12 +26,12 @@ class TestEmotionEngineInit:
         assert engine.config == config
         mock_openai.assert_called_once_with(api_key="test-key", base_url=None)
 
-    @patch('todo.emotion.OpenAI')
+    @patch('justdo.emotion.OpenAI')
     @patch.dict('os.environ', {'OPENAI_BASE_URL': 'https://api.test.com'})
     def test_init_with_base_url(self, mock_openai):
         """测试：应支持自定义 base_url"""
         # Arrange
-        from todo.ai import AIConfig
+        from justdo.ai import AIConfig
         config = AIConfig(api_key="test-key")
 
         # Act
@@ -51,7 +51,7 @@ class TestEmotionEngineGenerate:
     def test_generate_calls_openai_api(self):
         """测试：generate 应调用 OpenAI API"""
         # Arrange
-        from todo.ai import AIConfig
+        from justdo.ai import AIConfig
         config = AIConfig(api_key="test")
         engine = EmotionEngine(config)
 
@@ -80,7 +80,7 @@ class TestEmotionEngineGenerate:
     def test_generate_with_custom_params(self):
         """测试：generate 应支持自定义参数"""
         # Arrange
-        from todo.ai import AIConfig
+        from justdo.ai import AIConfig
         config = AIConfig(api_key="test")
         engine = EmotionEngine(config)
 
@@ -110,7 +110,7 @@ class TestEmotionEngineGenerate:
     def test_generate_disables_thinking_for_glm(self):
         """测试：GLM 模型应禁用思考模式"""
         # Arrange
-        from todo.ai import AIConfig
+        from justdo.ai import AIConfig
         config = AIConfig(api_key="test", model="glm-4.7")
         engine = EmotionEngine(config)
 
@@ -135,7 +135,7 @@ class TestEmotionEngineGenerate:
     def test_generate_stream_mode(self):
         """测试：generate 应支持流式输出"""
         # Arrange
-        from todo.ai import AIConfig
+        from justdo.ai import AIConfig
         config = AIConfig(api_key="test")
         engine = EmotionEngine(config)
 

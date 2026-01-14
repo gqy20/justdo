@@ -158,7 +158,7 @@ DEFAULT_PORT = 8848
 async def root():
     """首页 - 返回单页应用"""
     # 动态查找 static 目录
-    import todo.api
+    import justdo.api
     static_dir = Path(todo.api.__file__).parent / "static"
     index_file = static_dir / "index.html"
 

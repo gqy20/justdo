@@ -61,14 +61,14 @@ Documentation = "http://home.gqy20.top/justdo/"
 "Issue Tracker" = "https://github.com/gqy20/justdo/issues"
 
 [project.scripts]
-jd = "todo.cli:main"
-jd-web = "todo.api:main"
+jd = "justdo.cli:main"
+jd-web = "justdo.api:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
 
 [tool.setuptools.package-data]
-todo = ["static/*"]
+justdo = ["static/*"]
 
 [tool.setuptools]
 include-package-data = true

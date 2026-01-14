@@ -7,7 +7,7 @@ import pytest
 import time
 import asyncio
 from unittest.mock import patch, MagicMock
-from todo.emotion import EmotionEngine
+from justdo.emotion import EmotionEngine
 
 
 @patch.dict('os.environ', {}, clear=True)
@@ -15,7 +15,7 @@ from todo.emotion import EmotionEngine
 async def test_generate_parallel_is_really_parallel():
     """验证：generate_parallel 确实是并行执行（比顺序快）"""
     # Arrange
-    from todo.ai import AIConfig
+    from justdo.ai import AIConfig
     config = AIConfig(api_key="test")
     engine = EmotionEngine(config)
 
@@ -47,8 +47,8 @@ async def test_generate_parallel_is_really_parallel():
 @patch.dict('os.environ', {}, clear=True)
 def test_sequential_execution_is_slower():
     """对比：顺序执行确实比并行慢"""
-    from todo.ai import AIConfig
-    from todo.emotion import EmotionEngine
+    from justdo.ai import AIConfig
+    from justdo.emotion import EmotionEngine
 
     config = AIConfig(api_key="test")
     engine = EmotionEngine(config)
@@ -79,8 +79,8 @@ def test_sequential_execution_is_slower():
 @pytest.mark.asyncio
 async def test_parallel_vs_sequential_comparison():
     """直接对比：并行 vs 顺序"""
-    from todo.ai import AIConfig
-    from todo.emotion import EmotionEngine
+    from justdo.ai import AIConfig
+    from justdo.emotion import EmotionEngine
 
     config = AIConfig(api_key="test")
     engine = EmotionEngine(config)

@@ -6,8 +6,8 @@
 import pytest
 from pathlib import Path
 
-from todo.api import app
-from todo.manager import TodoManager
+from justdo.api import app
+from justdo.manager import TodoManager
 
 
 @pytest.fixture
@@ -23,13 +23,13 @@ def client(test_db_path):
 
     # 覆盖 TodoManager 的文件路径
     # 通过依赖注入或 monkey patch
-    import todo.api
-    original_get_manager = todo.api.get_manager
+    import justdo.api
+    original_get_manager = justdo.api.get_manager
 
     def mock_get_manager():
         return TodoManager(str(test_db_path))
 
-    todo.api.get_manager = mock_get_manager
+    justdo.api.get_manager = mock_get_manager
 
     from fastapi.testclient import TestClient
     _client = TestClient(app)
@@ -37,7 +37,7 @@ def client(test_db_path):
     yield _client
 
     # 恢复原始函数
-    todo.api.get_manager = original_get_manager
+    justdo.api.get_manager = original_get_manager
 
 
 class TestAPITodos:

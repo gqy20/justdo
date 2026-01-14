@@ -6,14 +6,14 @@
 import pytest
 from unittest.mock import patch, MagicMock
 from io import StringIO
-from todo.cli import main
+from justdo.cli import main
 
 
 class TestCLIAddCommand:
     """测试 add 命令"""
 
-    @patch("todo.cli.TodoManager")
-    @patch("sys.argv", ["todo.py", "add", "学习 Python"])
+    @patch("justdo.cli.TodoManager")
+    @patch("sys.argv", ["justdo.py", "add", "学习 Python"])
     def test_add_command_calls_manager_add(self, mock_manager_class):
         """测试：add 命令应调用 manager.add()"""
         # Arrange
@@ -27,8 +27,8 @@ class TestCLIAddCommand:
         # Assert
         mock_manager.add.assert_called_once_with("学习 Python", priority="medium")
 
-    @patch("todo.cli.TodoManager")
-    @patch("sys.argv", ["todo.py", "add", "  空格测试  "])
+    @patch("justdo.cli.TodoManager")
+    @patch("sys.argv", ["justdo.py", "add", "  空格测试  "])
     def test_add_trims_whitespace(self, mock_manager_class):
         """测试：add 应去除文本首尾空格"""
         # Arrange
@@ -43,8 +43,8 @@ class TestCLIAddCommand:
         # Assert
         mock_manager.add.assert_called_once_with("空格测试", priority="medium")
 
-    @patch("todo.cli.TodoManager")
-    @patch("sys.argv", ["todo.py", "add", "紧急任务", "-l", "1"])
+    @patch("justdo.cli.TodoManager")
+    @patch("sys.argv", ["justdo.py", "add", "紧急任务", "-l", "1"])
     def test_add_with_high_priority_level(self, mock_manager_class):
         """测试：add -l 1 应调用 manager.add(text, priority='high')"""
         # Arrange
@@ -58,8 +58,8 @@ class TestCLIAddCommand:
         # Assert
         mock_manager.add.assert_called_once_with("紧急任务", priority="high")
 
-    @patch("todo.cli.TodoManager")
-    @patch("sys.argv", ["todo.py", "add", "任务", "-l", "3"])
+    @patch("justdo.cli.TodoManager")
+    @patch("sys.argv", ["justdo.py", "add", "任务", "-l", "3"])
     def test_add_with_low_priority_level(self, mock_manager_class):
         """测试：add -l 3 应调用 manager.add(text, priority='low')"""
         # Arrange
@@ -73,10 +73,10 @@ class TestCLIAddCommand:
         # Assert
         mock_manager.add.assert_called_once_with("任务", priority="low")
 
-    @patch("todo.cli.TodoManager")
-    @patch("sys.argv", ["todo.py", "add", "写报告", "--ai"])
+    @patch("justdo.cli.TodoManager")
+    @patch("sys.argv", ["justdo.py", "add", "写报告", "--ai"])
     @patch.dict("os.environ", {"OPENAI_API_KEY": "test-key"})
-    @patch("todo.ai.AIHandler")
+    @patch("justdo.ai.AIHandler")
     def test_add_with_ai_flag_enhances_input(self, mock_ai_handler, mock_manager_class):
         """测试：add --ai 应使用 AI 优化任务描述"""
         # Arrange
@@ -99,8 +99,8 @@ class TestCLIAddCommand:
         mock_manager.add.assert_called_once_with("写 2024 年度报告", priority="medium")
         assert "AI 优化" in output or "已添加" in output
 
-    @patch("todo.cli.TodoManager")
-    @patch("sys.argv", ["todo.py", "add", "写报告", "--ai"])
+    @patch("justdo.cli.TodoManager")
+    @patch("sys.argv", ["justdo.py", "add", "写报告", "--ai"])
     @patch.dict("os.environ", {}, clear=True)
     def test_add_with_ai_flag_missing_key_shows_error(self, mock_manager_class):
         """测试：add --ai 但缺少 API key 应显示错误"""
@@ -120,8 +120,8 @@ class TestCLIAddCommand:
 class TestCLIListCommand:
     """测试 list 命令"""
 
-    @patch("todo.cli.TodoManager")
-    @patch("sys.argv", ["todo.py", "list"])
+    @patch("justdo.cli.TodoManager")
+    @patch("sys.argv", ["justdo.py", "list"])
     def test_list_displays_all_todos(self, mock_manager_class):
         """测试：list 命令应显示所有任务"""
         # Arrange
@@ -140,8 +140,8 @@ class TestCLIListCommand:
         assert "任务 1" in output
         assert "任务 2" in output
 
-    @patch("todo.cli.TodoManager")
-    @patch("sys.argv", ["todo.py", "list"])
+    @patch("justdo.cli.TodoManager")
+    @patch("sys.argv", ["justdo.py", "list"])
     def test_list_empty_shows_message(self, mock_manager_class):
         """测试：空列表应显示提示信息"""
         # Arrange
@@ -157,8 +157,8 @@ class TestCLIListCommand:
         # Assert
         assert "暂无任务" in output or "empty" in output.lower()
 
-    @patch("todo.cli.TodoManager")
-    @patch("sys.argv", ["todo.py", "list", "--done"])
+    @patch("justdo.cli.TodoManager")
+    @patch("sys.argv", ["justdo.py", "list", "--done"])
     def test_list_with_done_filter(self, mock_manager_class):
         """测试：list --done 只显示已完成的任务"""
         # Arrange
@@ -177,8 +177,8 @@ class TestCLIListCommand:
         assert "已完成" in output
         assert "未完成" not in output
 
-    @patch("todo.cli.TodoManager")
-    @patch("sys.argv", ["todo.py", "list", "--undone"])
+    @patch("justdo.cli.TodoManager")
+    @patch("sys.argv", ["justdo.py", "list", "--undone"])
     def test_list_with_undone_filter(self, mock_manager_class):
         """测试：list --undone 只显示未完成的任务"""
         # Arrange
@@ -201,8 +201,8 @@ class TestCLIListCommand:
 class TestCLISuggestCommand:
     """测试 suggest 命令"""
 
-    @patch("todo.cli.TodoManager")
-    @patch("sys.argv", ["todo.py", "suggest"])
+    @patch("justdo.cli.TodoManager")
+    @patch("sys.argv", ["justdo.py", "suggest"])
     def test_suggest_shows_priority_order(self, mock_manager_class):
         """测试：suggest 应按优先级排序显示任务"""
         # Arrange
@@ -228,10 +228,10 @@ class TestCLISuggestCommand:
         # 验证顺序：1 在 3 之前，3 在 2 之前
         assert line_1_idx < line_3_idx < line_2_idx
 
-    @patch("todo.cli.TodoManager")
-    @patch("sys.argv", ["todo.py", "suggest", "--ai"])
+    @patch("justdo.cli.TodoManager")
+    @patch("sys.argv", ["justdo.py", "suggest", "--ai"])
     @patch.dict("os.environ", {"OPENAI_API_KEY": "test-key"})
-    @patch("todo.emotion.trigger_cli_feedback_stream")
+    @patch("justdo.emotion.trigger_cli_feedback_stream")
     def test_suggest_with_ai_uses_ai_suggestion(self, mock_feedback_stream, mock_manager_class):
         """测试：suggest --ai 应使用 AI 建议下一步（流式输出）"""
         # Arrange
@@ -256,8 +256,8 @@ class TestCLISuggestCommand:
 class TestCLIDoneCommand:
     """测试 done 命令"""
 
-    @patch("todo.cli.TodoManager")
-    @patch("sys.argv", ["todo.py", "done", "1"])
+    @patch("justdo.cli.TodoManager")
+    @patch("sys.argv", ["justdo.py", "done", "1"])
     def test_mark_done_calls_manager(self, mock_manager_class):
         """测试：done 命令应调用 manager.mark_done()"""
         # Arrange
@@ -271,8 +271,8 @@ class TestCLIDoneCommand:
         # Assert
         mock_manager.mark_done.assert_called_once_with(1)
 
-    @patch("todo.cli.TodoManager")
-    @patch("sys.argv", ["todo.py", "done", "abc"])
+    @patch("justdo.cli.TodoManager")
+    @patch("sys.argv", ["justdo.py", "done", "abc"])
     def test_done_with_invalid_id_shows_error(self, mock_manager_class):
         """测试：done 命令使用无效 ID 应显示错误（argparse 处理）"""
         # Arrange
@@ -284,8 +284,8 @@ class TestCLIDoneCommand:
             with patch("sys.stderr", new_callable=StringIO):
                 main()
 
-    @patch("todo.cli.TodoManager")
-    @patch("sys.argv", ["todo.py", "done", "1", "2", "3"])
+    @patch("justdo.cli.TodoManager")
+    @patch("sys.argv", ["justdo.py", "done", "1", "2", "3"])
     def test_done_with_multiple_ids(self, mock_manager_class):
         """测试：done 命令支持多个 ID"""
         # Arrange
@@ -305,8 +305,8 @@ class TestCLIDoneCommand:
         # 验证输出 - 所有反馈都以 ✓ 开头（传统或情绪反馈）
         assert output.count("✓") >= 3 or "✓" in output
 
-    @patch("todo.cli.TodoManager")
-    @patch("sys.argv", ["todo.py", "done", "1-3"])
+    @patch("justdo.cli.TodoManager")
+    @patch("sys.argv", ["justdo.py", "done", "1-3"])
     def test_done_with_id_range(self, mock_manager_class):
         """测试：done 命令支持 ID 范围语法 1-3"""
         # Arrange
@@ -324,8 +324,8 @@ class TestCLIDoneCommand:
         mock_manager.mark_done.assert_any_call(2)
         mock_manager.mark_done.assert_any_call(3)
 
-    @patch("todo.cli.TodoManager")
-    @patch("sys.argv", ["todo.py", "done", "1", "3-5", "7"])
+    @patch("justdo.cli.TodoManager")
+    @patch("sys.argv", ["justdo.py", "done", "1", "3-5", "7"])
     def test_done_with_mixed_ids_and_ranges(self, mock_manager_class):
         """测试：done 命令支持混合 ID 和范围"""
         # Arrange
@@ -348,8 +348,8 @@ class TestCLIDoneCommand:
 class TestCLIDeleteCommand:
     """测试 delete 命令"""
 
-    @patch("todo.cli.TodoManager")
-    @patch("sys.argv", ["todo.py", "delete", "2"])
+    @patch("justdo.cli.TodoManager")
+    @patch("sys.argv", ["justdo.py", "delete", "2"])
     def test_delete_calls_manager(self, mock_manager_class):
         """测试：delete 命令应调用 manager.delete()"""
         # Arrange
@@ -363,8 +363,8 @@ class TestCLIDeleteCommand:
         # Assert
         mock_manager.delete.assert_called_once_with(2)
 
-    @patch("todo.cli.TodoManager")
-    @patch("sys.argv", ["todo.py", "delete", "999"])
+    @patch("justdo.cli.TodoManager")
+    @patch("sys.argv", ["justdo.py", "delete", "999"])
     def test_delete_nonexistent_shows_error(self, mock_manager_class):
         """测试：删除不存在的任务应显示错误"""
         # Arrange
@@ -379,8 +379,8 @@ class TestCLIDeleteCommand:
                 output = mock_stderr.getvalue()
                 assert "错误" in output
 
-    @patch("todo.cli.TodoManager")
-    @patch("sys.argv", ["todo.py", "delete", "1", "2", "3"])
+    @patch("justdo.cli.TodoManager")
+    @patch("sys.argv", ["justdo.py", "delete", "1", "2", "3"])
     def test_delete_with_multiple_ids(self, mock_manager_class):
         """测试：delete 命令支持多个 ID"""
         # Arrange
@@ -400,8 +400,8 @@ class TestCLIDeleteCommand:
         # 验证输出
         assert "已删除" in output or "删除" in output
 
-    @patch("todo.cli.TodoManager")
-    @patch("sys.argv", ["todo.py", "delete", "1-3"])
+    @patch("justdo.cli.TodoManager")
+    @patch("sys.argv", ["justdo.py", "delete", "1-3"])
     def test_delete_with_id_range(self, mock_manager_class):
         """测试：delete 命令支持 ID 范围语法 1-3"""
         # Arrange
@@ -418,8 +418,8 @@ class TestCLIDeleteCommand:
         mock_manager.delete.assert_any_call(2)
         mock_manager.delete.assert_any_call(3)
 
-    @patch("todo.cli.TodoManager")
-    @patch("sys.argv", ["todo.py", "delete", "1", "3-5"])
+    @patch("justdo.cli.TodoManager")
+    @patch("sys.argv", ["justdo.py", "delete", "1", "3-5"])
     def test_delete_with_mixed_ids_and_ranges(self, mock_manager_class):
         """测试：delete 命令支持混合 ID 和范围"""
         # Arrange
@@ -441,8 +441,8 @@ class TestCLIDeleteCommand:
 class TestCLIClearCommand:
     """测试 clear 命令"""
 
-    @patch("todo.cli.TodoManager")
-    @patch("sys.argv", ["todo.py", "clear"])
+    @patch("justdo.cli.TodoManager")
+    @patch("sys.argv", ["justdo.py", "clear"])
     def test_clear_calls_manager(self, mock_manager_class):
         """测试：clear 命令应调用 manager.clear()"""
         # Arrange
@@ -460,7 +460,7 @@ class TestCLIClearCommand:
 class TestCLIInvalidCommand:
     """测试无效命令"""
 
-    @patch("sys.argv", ["todo.py", "invalid"])
+    @patch("sys.argv", ["justdo.py", "invalid"])
     def test_invalid_command_shows_help(self):
         """测试：无效命令应显示帮助信息"""
         # Act & Assert

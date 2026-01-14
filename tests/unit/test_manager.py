@@ -8,7 +8,7 @@ import json
 import pytest
 from pathlib import Path
 from unittest.mock import patch, mock_open
-from todo.manager import TodoManager
+from justdo.manager import TodoManager
 
 
 class TestTodoManagerInit:
@@ -20,7 +20,7 @@ class TestTodoManagerInit:
         with patch("pathlib.Path.exists", return_value=False):
             with patch("pathlib.Path.open", mock_open()):
                 # Act
-                manager = TodoManager(filepath="todo.json")
+                manager = TodoManager(filepath="justdo.json")
 
                 # Assert
                 assert manager.todos == [], "新管理的 todo 列表应为空"
@@ -33,7 +33,7 @@ class TestTodoManagerInit:
         # Act
         with patch("builtins.open", mock_open(read_data=json.dumps(mock_data))):
             with patch.object(Path, "exists", return_value=True):
-                manager = TodoManager(filepath="todo.json")
+                manager = TodoManager(filepath="justdo.json")
 
         # Assert
         assert manager.todos == [], "应加载空的 todo 列表"
@@ -47,7 +47,7 @@ class TestTodoManagerAdd:
         # Arrange
         with patch("pathlib.Path.exists", return_value=False):
             with patch("pathlib.Path.open", mock_open()):
-                manager = TodoManager(filepath="todo.json")
+                manager = TodoManager(filepath="justdo.json")
 
                 # Act
                 manager.add("学习 Python")
@@ -62,7 +62,7 @@ class TestTodoManagerAdd:
         # Arrange
         with patch("pathlib.Path.exists", return_value=False):
             with patch("pathlib.Path.open", mock_open()):
-                manager = TodoManager(filepath="todo.json")
+                manager = TodoManager(filepath="justdo.json")
 
                 # Act
                 manager.add("任务 1")
@@ -79,7 +79,7 @@ class TestTodoManagerAdd:
         # Arrange
         with patch("pathlib.Path.exists", return_value=False):
             with patch("pathlib.Path.open", mock_open()):
-                manager = TodoManager(filepath="todo.json")
+                manager = TodoManager(filepath="justdo.json")
 
                 # Act & Assert
                 with pytest.raises(ValueError, match="文本不能为空"):
@@ -90,7 +90,7 @@ class TestTodoManagerAdd:
         # Arrange
         with patch("pathlib.Path.exists", return_value=False):
             with patch("pathlib.Path.open", mock_open()):
-                manager = TodoManager(filepath="todo.json")
+                manager = TodoManager(filepath="justdo.json")
 
                 # Act
                 manager.add("紧急任务", priority="high")
@@ -104,7 +104,7 @@ class TestTodoManagerAdd:
         # Arrange
         with patch("pathlib.Path.exists", return_value=False):
             with patch("pathlib.Path.open", mock_open()):
-                manager = TodoManager(filepath="todo.json")
+                manager = TodoManager(filepath="justdo.json")
 
                 # Act
                 manager.add("普通任务")
@@ -117,7 +117,7 @@ class TestTodoManagerAdd:
         # Arrange
         with patch("pathlib.Path.exists", return_value=False):
             with patch("pathlib.Path.open", mock_open()):
-                manager = TodoManager(filepath="todo.json")
+                manager = TodoManager(filepath="justdo.json")
 
                 # Act & Assert
                 with pytest.raises(ValueError, match="优先级必须是"):
@@ -132,7 +132,7 @@ class TestTodoManagerList:
         # Arrange
         with patch("pathlib.Path.exists", return_value=False):
             with patch("pathlib.Path.open", mock_open()):
-                manager = TodoManager(filepath="todo.json")
+                manager = TodoManager(filepath="justdo.json")
                 manager.add("任务 1")
                 manager.add("任务 2")
 
@@ -149,7 +149,7 @@ class TestTodoManagerList:
         # Arrange
         with patch("pathlib.Path.exists", return_value=False):
             with patch("pathlib.Path.open", mock_open()):
-                manager = TodoManager(filepath="todo.json")
+                manager = TodoManager(filepath="justdo.json")
 
                 # Act
                 result = manager.list()
@@ -166,7 +166,7 @@ class TestTodoManagerDone:
         # Arrange
         with patch("pathlib.Path.exists", return_value=False):
             with patch("pathlib.Path.open", mock_open()):
-                manager = TodoManager(filepath="todo.json")
+                manager = TodoManager(filepath="justdo.json")
                 manager.add("测试任务")
 
                 # Act
@@ -180,7 +180,7 @@ class TestTodoManagerDone:
         # Arrange
         with patch("pathlib.Path.exists", return_value=False):
             with patch("pathlib.Path.open", mock_open()):
-                manager = TodoManager(filepath="todo.json")
+                manager = TodoManager(filepath="justdo.json")
 
                 # Act & Assert
                 with pytest.raises(ValueError, match="任务不存在"):
@@ -195,7 +195,7 @@ class TestTodoManagerDelete:
         # Arrange
         with patch("pathlib.Path.exists", return_value=False):
             with patch("pathlib.Path.open", mock_open()):
-                manager = TodoManager(filepath="todo.json")
+                manager = TodoManager(filepath="justdo.json")
                 manager.add("任务 1")
                 manager.add("任务 2")
 
@@ -212,7 +212,7 @@ class TestTodoManagerDelete:
         # Arrange
         with patch("pathlib.Path.exists", return_value=False):
             with patch("pathlib.Path.open", mock_open()):
-                manager = TodoManager(filepath="todo.json")
+                manager = TodoManager(filepath="justdo.json")
 
                 # Act & Assert
                 with pytest.raises(ValueError, match="任务不存在"):
@@ -227,7 +227,7 @@ class TestTodoManagerClear:
         # Arrange
         with patch("pathlib.Path.exists", return_value=False):
             with patch("pathlib.Path.open", mock_open()):
-                manager = TodoManager(filepath="todo.json")
+                manager = TodoManager(filepath="justdo.json")
                 manager.add("任务 1")
                 manager.add("任务 2")
                 manager.mark_done(1)  # 标记第一个完成
@@ -245,7 +245,7 @@ class TestTodoManagerClear:
         # Arrange
         with patch("pathlib.Path.exists", return_value=False):
             with patch("pathlib.Path.open", mock_open()):
-                manager = TodoManager(filepath="todo.json")
+                manager = TodoManager(filepath="justdo.json")
 
                 # Act (should not raise)
                 manager.clear()
@@ -262,7 +262,7 @@ class TestTodoManagerSave:
         # Arrange
         with patch("pathlib.Path.exists", return_value=False):
             with patch("pathlib.Path.open", mock_open()):
-                manager = TodoManager(filepath="todo.json")
+                manager = TodoManager(filepath="justdo.json")
                 manager.add("测试任务")
 
         # Act & Assert - 验证 save 能被调用且不抛出异常

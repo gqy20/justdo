@@ -5,7 +5,7 @@
 
 import pytest
 from unittest.mock import Mock, patch, MagicMock
-from todo.ai import AIHandler, AIConfig, get_ai_handler
+from justdo.ai import AIHandler, AIConfig, get_ai_handler
 
 
 class TestAIConfig:
@@ -40,7 +40,7 @@ class TestAIConfig:
 class TestAIHandlerInit:
     """测试 AIHandler 初始化"""
 
-    @patch('todo.ai.OpenAI')
+    @patch('justdo.ai.OpenAI')
     @patch.dict('os.environ', {}, clear=True)
     def test_init_with_valid_config(self, mock_openai):
         """测试：有效配置应创建 AIHandler"""
@@ -62,7 +62,7 @@ class TestAIHandlerInit:
             with pytest.raises(ValueError, match="OPENAI_API_KEY"):
                 get_ai_handler()
 
-    @patch('todo.ai.OpenAI')
+    @patch('justdo.ai.OpenAI')
     @patch.dict('os.environ', {'OPENAI_API_KEY': 'env-key', 'OPENAI_MODEL': 'gpt-4o'})
     def test_init_from_env(self, mock_openai):
         """测试：应从环境变量读取配置"""
@@ -77,7 +77,7 @@ class TestAIHandlerInit:
 class TestAIHandlerEnhanceInput:
     """测试 enhance_input 方法"""
 
-    @patch('todo.ai.OpenAI')
+    @patch('justdo.ai.OpenAI')
     def test_enhance_input_calls_openai_api(self, mock_openai):
         """测试：enhance_input 应调用 OpenAI API"""
         # Arrange
@@ -100,7 +100,7 @@ class TestAIHandlerEnhanceInput:
         assert "写报告" in call_args[1]['messages'][0]['content']
         assert result == "优化的描述"
 
-    @patch('todo.ai.OpenAI')
+    @patch('justdo.ai.OpenAI')
     def test_enhance_input_strips_whitespace(self, mock_openai):
         """测试：应去除返回结果的空白字符"""
         # Arrange
@@ -123,7 +123,7 @@ class TestAIHandlerEnhanceInput:
 class TestAIHandlerChat:
     """测试 chat 方法"""
 
-    @patch('todo.ai.OpenAI')
+    @patch('justdo.ai.OpenAI')
     def test_chat_includes_context(self, mock_openai):
         """测试：chat 应包含任务上下文"""
         # Arrange
