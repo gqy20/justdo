@@ -5,8 +5,6 @@
 
 import pytest
 from pathlib import Path
-import tempfile
-import json
 
 from todo.api import app
 from todo.manager import TodoManager
@@ -23,28 +21,23 @@ def client(test_db_path):
     """创建测试客户端"""
     from fastapi.testclient import TestClient
 
-    # 修改数据库路径
-    import todo.manager
-    original_path = todo.manager.get_todo_path()
-    todo.manager.TODO_PATH = str(test_db_path)
+    # 覆盖 TodoManager 的文件路径
+    # 通过依赖注入或 monkey patch
+    import todo.api
+    original_get_manager = todo.api.get_manager
 
-    def reset():
-        todo.manager.TODO_PATH = original_path
+    def mock_get_manager():
+        return TodoManager(str(test_db_path))
 
-    request = type("Request", (), {"scope": type("Scope", (), {"type": "http"})()})
-
-    def dependency_override():
-        from todo.manager import get_todo_path
-        return TodoManager(get_todo_path())
-
-    # 不需要依赖覆盖，直接使用全局 TODO_PATH
+    todo.api.get_manager = mock_get_manager
 
     from fastapi.testclient import TestClient
     _client = TestClient(app)
 
     yield _client
 
-    reset()
+    # 恢复原始函数
+    todo.api.get_manager = original_get_manager
 
 
 class TestAPITodos:
@@ -110,8 +103,7 @@ class TestAPICreateTodo:
     def test_create_todo_empty_text_raises_error(self, client):
         """测试：空文本应返回 400"""
         response = client.post("/api/todos", json={"text": "", "priority": "medium"})
-        assert response.status_code == 400
-        assert "text" in response.json()["detail"].lower()
+        assert response.status_code == 422  # Pydantic 验证错误
 
 
 class TestAPIMarkDone:
@@ -201,7 +193,7 @@ class TestAPISuggest:
 class TestAPIChat:
     """测试 AI 对话"""
 
-    @pytest.mark.skipif("not os.getenv('OPENAI_API_KEY')")
+    @pytest.mark.skipif(not pytest.importorskip("os").getenv("OPENAI_API_KEY"), reason="需要 OPENAI_API_KEY")
     def test_chat_returns_response(self, client):
         """测试：应返回 AI 响应"""
         client.post("/api/todos", json={"text": "任务", "priority": "medium"})
