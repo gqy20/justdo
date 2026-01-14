@@ -15,6 +15,7 @@ from .prompts import (
     PROMPT_LIST_CLEARED,
     PROMPT_TASK_ADDED,
     PROMPT_SUGGEST_ENHANCED,
+    PROMPT_UNIFIED_ANALYSIS,
 )
 
 
@@ -266,3 +267,206 @@ EMOTION_SCENARIOS: Dict[str, EmotionScenario] = {
         stream=True,
     ),
 }
+
+
+# ============================================================================
+# 统一分析（一次请求完成用户画像+情感反馈）
+# ============================================================================
+
+def trigger_unified_analysis(
+    total_tasks: int,
+    completed_tasks: int,
+    completion_rate: float,
+    current_streak: int,
+    longest_streak: int,
+    category_stats: str,
+    hourly_activity: str,
+    deletion_rate: float,
+    recent_7d_deletions: int,
+    task_text: str,
+    task_priority: str,
+    time_context: str,
+    today_completed: int,
+    today_total: int,
+    remaining_count: int,
+) -> Dict:
+    """触发统一分析：一次请求完成用户画像和情感反馈
+
+    Args:
+        total_tasks: 总任务数
+        completed_tasks: 完成任务数
+        completion_rate: 完成率
+        current_streak: 当前连续打卡天数
+        longest_streak: 最长连续天数
+        category_stats: 类别统计文本
+        hourly_activity: 时段活跃度文本
+        deletion_rate: 删除率
+        recent_7d_deletions: 最近7天删除数
+        task_text: 当前任务文本
+        task_priority: 任务优先级
+        time_context: 时段
+        today_completed: 今日已完成数
+        today_total: 今日总任务数
+        remaining_count: 剩余任务数
+
+    Returns:
+        包含 user_type, strengths_weaknesses, risk_alerts, task_feedback 的字典
+    """
+    from todo.ai import get_ai_handler
+
+    # 格式化提示词
+    prompt = PROMPT_UNIFIED_ANALYSIS.format(
+        total_tasks=total_tasks,
+        completed_tasks=completed_tasks,
+        completion_rate=completion_rate,
+        current_streak=current_streak,
+        longest_streak=longest_streak,
+        category_stats=category_stats or "暂无数据",
+        hourly_activity=hourly_activity or "暂无数据",
+        deletion_rate=deletion_rate,
+        recent_7d_deletions=recent_7d_deletions,
+        task_text=task_text,
+        task_priority=task_priority,
+        time_context=time_context,
+        today_completed=today_completed,
+        today_total=today_total,
+        remaining_count=remaining_count,
+    )
+
+    # 获取 AI 引擎
+    ai = get_ai_handler()
+    engine = EmotionEngine(ai.config)
+
+    try:
+        response = engine.generate(
+            prompt=prompt,
+            max_tokens=800,
+            temperature=0.7,
+            stream=False,
+        )
+
+        # 解析 JSON 响应
+        import re
+        import json
+        json_match = re.search(r'\{.*\}', response, re.DOTALL)
+        if json_match:
+            return json.loads(json_match.group())
+        else:
+            # JSON 解析失败，返回基本结构
+            return {
+                "user_type": {
+                    "execution_pattern": "待观察",
+                    "time_preference": "待观察",
+                    "activity_pattern": "待观察",
+                },
+                "strengths_weaknesses": {
+                    "strengths": ["正在积累数据"],
+                    "weaknesses": [],
+                    "suggestions": ["继续坚持"],
+                },
+                "risk_alerts": [],
+                "task_feedback": response[:50] if len(response) > 50 else response,
+            }
+    except Exception as e:
+        # AI 调用失败，返回错误说明
+        return {
+            "user_type": {
+                "execution_pattern": "未知",
+                "time_preference": "未知",
+                "activity_pattern": "未知",
+            },
+            "strengths_weaknesses": {
+                "strengths": [],
+                "weaknesses": [],
+                "suggestions": [],
+            },
+            "risk_alerts": [],
+            "task_feedback": f"（AI 暂不可用：{e}）",
+        }
+
+
+# ============================================================================
+# 流式反馈生成（用于实时显示）
+# ============================================================================
+
+def trigger_feedback_stream(
+    total_tasks: int,
+    completed_tasks: int,
+    completion_rate: float,
+    current_streak: int,
+    longest_streak: int,
+    category_stats: str,
+    hourly_activity: str,
+    deletion_rate: float,
+    recent_7d_deletions: int,
+    task_text: str,
+    task_priority: str,
+    time_context: str,
+    today_completed: int,
+    today_total: int,
+    remaining_count: int,
+):
+    """流式生成任务反馈（简化版 prompt，只生成 feedback）
+
+    Args:
+        同 trigger_unified_analysis
+
+    Yields:
+        文本片段
+    """
+    from todo.ai import get_ai_handler
+
+    # 使用简化的 prompt，只关注任务反馈
+    simplified_prompt = f"""你是用户贴心的任务助手，用户刚完成了一个任务。
+
+【用户上下文】
+- 刚完成的任务：{task_text}（优先级：{task_priority}）
+- 当前时段：{time_context}
+- 今日已完成：{today_completed}/{today_total} 个任务
+- 剩余任务数：{remaining_count} 个
+- 完成率：{completion_rate:.1%}
+- 连续打卡：{current_streak} 天
+
+请分析任务并生成一句简短的鼓励/反馈（20-40字）：
+
+分析维度：
+1. 任务类型识别（工作/学习/运动/生活/日常）
+2. 任务重要程度（基于优先级和内容）
+3. 用户完成进度（今日完成数量 vs 总数）
+
+反馈要求：
+- 语气真诚、温暖，不要过度煽情
+- 工作任务：肯定专业能力和执行力
+- 学习任务：赞赏求知欲和进步
+- 运动/健康：赞美自律和投资自己
+- 高优先级：强调成就和重要意义
+- 完成数量多：赞美执行力
+- 完成数量少：鼓励"小步快跑"
+- 剩余任务多：避免给压力，强调"一次一个"
+- 剩余任务少：营造"即将完成"的兴奋感
+- 早晨/上午：强调"好的开始"
+- 深夜：认可努力，也提醒休息
+- 最多用 1 个 emoji，放在句末
+
+直接输出鼓励语，不要解释："""
+
+    # 获取 AI 引擎
+    ai = get_ai_handler()
+    engine = EmotionEngine(ai.config)
+
+    try:
+        # 流式生成
+        for chunk in engine._generate_stream({
+            "model": ai.config.model,
+            "messages": [{"role": "user", "content": simplified_prompt}],
+            "max_tokens": 100,
+            "temperature": 0.8,
+            "stream": True,
+            **({"extra_body": {"thinking": {"type": "disabled"}}}
+               if engine._should_disable_thinking() else {})
+        }):
+            if chunk:
+                yield chunk
+    except Exception as e:
+        # AI 调用失败
+        yield f"（AI 暂不可用）"

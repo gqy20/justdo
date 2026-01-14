@@ -81,11 +81,18 @@ class AIHandler:
         Returns:
             AI 回复
         """
-        # 格式化任务列表
-        todos_text = "\n".join([
-            f"- [{t.id}] {t.text} (优先级: {t.priority})"
-            for t in todos
-        ])
+        # 分组显示任务：未完成 / 已完成
+        unfinished = [t for t in todos if not t.done]
+        finished = [t for t in todos if t.done]
+
+        unfinished_lines = [f"  - [{t.id}] {t.text} (优先级: {t.priority})" for t in unfinished]
+        finished_lines = [f"  - [{t.id}] {t.text}" for t in finished]
+
+        todos_text = f"""未完成任务 ({len(unfinished)}个):
+{chr(10).join(unfinished_lines) if unfinished_lines else "  (无)"}
+
+已完成任务 ({len(finished)}个):
+{chr(10).join(finished_lines) if finished_lines else "  (无)"}"""
 
         # 使用 prompts.py 中的系统提示词
         system_prompt = CHAT_SYSTEM_PROMPT.format(todos=todos_text)
@@ -117,11 +124,18 @@ class AIHandler:
         Yields:
             响应文本片段
         """
-        # 格式化任务列表
-        todos_text = "\n".join([
-            f"- [{t.id}] {t.text} (优先级: {t.priority})"
-            for t in todos
-        ])
+        # 分组显示任务：未完成 / 已完成
+        unfinished = [t for t in todos if not t.done]
+        finished = [t for t in todos if t.done]
+
+        unfinished_lines = [f"  - [{t.id}] {t.text} (优先级: {t.priority})" for t in unfinished]
+        finished_lines = [f"  - [{t.id}] {t.text}" for t in finished]
+
+        todos_text = f"""未完成任务 ({len(unfinished)}个):
+{chr(10).join(unfinished_lines) if unfinished_lines else "  (无)"}
+
+已完成任务 ({len(finished)}个):
+{chr(10).join(finished_lines) if finished_lines else "  (无)"}"""
 
         # 使用 prompts.py 中的系统提示词
         system_prompt = CHAT_SYSTEM_PROMPT.format(todos=todos_text)

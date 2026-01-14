@@ -567,6 +567,119 @@
             to { opacity: 1; }
         }
 
+        /* ============================================================================
+         * 加载指示器 - 更大更明显
+         * ============================================================================ */
+        .loading-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(250, 250, 249, 0.85);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+        }
+
+        .loading-overlay.show {
+            display: flex;
+            animation: fadeIn 0.15s var(--ease-out);
+        }
+
+        .spinner-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .spinner {
+            width: 60px;
+            height: 60px;
+            position: relative;
+        }
+
+        /* 大型旋转圆环 */
+        .spinner-ring {
+            position: absolute;
+            inset: 0;
+            border: 4px solid transparent;
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 1s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+        }
+
+        .spinner-ring:nth-child(2) {
+            inset: 8px;
+            border: 3px solid transparent;
+            border-top-color: var(--accent);
+            opacity: 0.6;
+            animation: spin 1.5s cubic-bezier(0.5, 0, 0.5, 1) infinite reverse;
+        }
+
+        .spinner-ring:nth-child(3) {
+            inset: 16px;
+            border: 2px solid transparent;
+            border-top-color: var(--accent);
+            opacity: 0.3;
+            animation: spin 2s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            font-size: 15px;
+            color: var(--text-ink);
+            font-weight: 500;
+            letter-spacing: 0.05em;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.7; }
+            50% { opacity: 1; }
+        }
+
+        /* 按钮加载状态 */
+        .btn-loading {
+            position: relative;
+            pointer-events: none;
+            padding-right: 36px !important;  /* 为 spinner 留出空间 */
+        }
+
+        .btn-loading::after {
+            content: '';
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            right: 12px;
+            top: 50%;
+            margin-top: -8px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+        }
+
+        /* 任务操作按钮的加载状态 */
+        .action-btn.btn-loading {
+            padding-right: 14px !important;
+            min-width: 60px;
+            text-align: center;
+        }
+
+        .action-btn.btn-loading::after {
+            width: 12px;
+            height: 12px;
+            right: 8px;
+            margin-top: -6px;
+            border-width: 1.5px;
+        }
+
         .loading {
             opacity: 0.5;
             pointer-events: none;
@@ -756,12 +869,48 @@
 
     <div class="toast" id="toast"></div>
 
+    <!-- 加载指示器 -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="spinner-container">
+            <div class="spinner">
+                <div class="spinner-ring"></div>
+                <div class="spinner-ring"></div>
+                <div class="spinner-ring"></div>
+            </div>
+            <div class="loading-text" id="loadingText">处理中...</div>
+        </div>
+    </div>
+
     <script>
         // API 基础 URL
         const API_BASE = window.location.origin + '/api';
 
         // 当前过滤状态
         let currentFilter = 'all';
+
+        // 加载指示器
+        function showLoading(text = '处理中...') {
+            const overlay = document.getElementById('loadingOverlay');
+            const loadingText = document.getElementById('loadingText');
+            loadingText.textContent = text;
+            overlay.classList.add('show');
+        }
+
+        function hideLoading() {
+            const overlay = document.getElementById('loadingOverlay');
+            overlay.classList.remove('show');
+        }
+
+        // 按钮加载状态
+        function setButtonLoading(button, loading) {
+            if (loading) {
+                button.classList.add('btn-loading');
+                button.disabled = true;
+            } else {
+                button.classList.remove('btn-loading');
+                button.disabled = false;
+            }
+        }
 
         // 加载任务列表
         async function loadTodos() {
@@ -779,13 +928,36 @@
         }
 
         // Toast 通知
-        function showToast(message, type = 'success') {
+        let toastIdCounter = 0;
+        function showToast(message, type = 'success', autoClose = 3000) {
             const toast = document.getElementById('toast');
-            toast.textContent = message;
+            const toastId = ++toastIdCounter;
+
+            // 设置 toast ID 属性
+            toast.setAttribute('data-toast-id', toastId);
+
+            // 设置内容
+            const toastContent = toast.querySelector('.toast-content') || toast;
+            toastContent.textContent = message;
+            if (!toast.querySelector('.toast-content')) {
+                toast.innerHTML = `<span class="toast-content">${message}</span>`;
+            }
+
             toast.className = `toast show ${type}`;
-            setTimeout(() => {
-                toast.classList.remove('show');
-            }, 3000);
+
+            // 清除之前的定时器
+            if (toast._hideTimer) {
+                clearTimeout(toast._hideTimer);
+            }
+
+            // 自动关闭（如果指定）
+            if (autoClose > 0) {
+                toast._hideTimer = setTimeout(() => {
+                    toast.classList.remove('show');
+                }, autoClose);
+            }
+
+            return toastId;
         }
 
         // 渲染任务列表
@@ -797,11 +969,11 @@
                 return;
             }
 
-            list.innerHTML = todos.map(todo => `
+            list.innerHTML = todos.map((todo, index) => `
                 <li class="todo-item ${todo.done ? 'done' : ''}">
                     <input type="checkbox" class="todo-checkbox"
                         ${todo.done ? 'checked' : ''}
-                        onchange="toggleTodo(${todo.id})">
+                        onchange="handleCheckboxChange(${todo.id}, this)">
                     <div class="todo-content">
                         <div class="todo-text">${escapeHtml(todo.text)}</div>
                         <div class="todo-meta">
@@ -812,7 +984,7 @@
                         </div>
                     </div>
                     <div class="todo-actions">
-                        <button class="action-btn" onclick="toggleTodo(${todo.id})">
+                        <button class="action-btn" onclick="handleToggleClick(${todo.id}, this)">
                             ${todo.done ? '撤销' : '完成'}
                         </button>
                         <button class="action-btn delete" onclick="deleteTodo(${todo.id})">删除</button>
@@ -821,8 +993,25 @@
             `).join('');
         }
 
+        // 处理复选框变化
+        function handleCheckboxChange(id, checkbox) {
+            toggleTodo(id);
+        }
+
+        // 处理完成/撤销按钮点击
+        function handleToggleClick(id, button) {
+            toggleTodo(id, button);
+        }
+
         // 添加任务
-        async function addTodo(text, priority, ai = false) {
+        async function addTodo(text, priority, ai = false, submitButton = null) {
+            // 显示加载状态
+            if (submitButton) {
+                setButtonLoading(submitButton, true);
+            } else {
+                showLoading('添加任务中...');
+            }
+
             try {
                 const url = ai ? `${API_BASE}/todos?ai=true` : `${API_BASE}/todos`;
                 const response = await fetch(url, {
@@ -850,31 +1039,113 @@
             } catch (error) {
                 console.error('添加失败:', error);
                 showToast('网络错误', 'error');
+            } finally {
+                // 隐藏加载状态
+                if (submitButton) {
+                    setButtonLoading(submitButton, false);
+                } else {
+                    hideLoading();
+                }
             }
         }
 
-        // 切换完成状态
-        async function toggleTodo(id) {
+        // 切换完成状态（支持流式响应）
+        async function toggleTodo(id, buttonElement = null) {
+            // 显示加载状态
+            if (buttonElement) {
+                setButtonLoading(buttonElement, true);
+            } else {
+                showLoading('处理中...');
+            }
+
             try {
                 const response = await fetch(`${API_BASE}/todos/${id}/toggle`, {
                     method: 'POST'
                 });
-                if (response.ok) {
-                    const data = await response.json();
-                    loadTodos();
 
-                    // 显示 AI 反馈（仅在完成时）
-                    if (data.feedback) {
-                        showToast(data.feedback, 'success');
-                    } else {
-                        showToast(data.done ? '任务已完成' : '任务已撤销', 'success');
-                    }
-                } else {
-                    showToast('操作失败，请重试', 'error');
+                if (!response.ok) {
+                    throw new Error('操作失败');
                 }
+
+                // 处理流式响应
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let buffer = '';
+                let initialData = null;
+                let feedbackText = '';
+                let feedbackToast = null;
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    buffer += decoder.decode(value, { stream: true });
+
+                    // 处理 SSE 格式（data: {...}\n\n）
+                    const lines = buffer.split('\n\n');
+                    buffer = lines.pop(); // 保留未完成的行
+
+                    for (const line of lines) {
+                        if (!line.trim() || !line.startsWith('data: ')) continue;
+
+                        try {
+                            const msg = JSON.parse(line.slice(6)); // 去掉 "data: " 前缀
+
+                            if (msg.type === 'status') {
+                                // 立即更新任务状态
+                                initialData = msg.data;
+                                loadTodos();
+
+                                // 隐藏加载状态（任务状态已更新）
+                                if (buttonElement) {
+                                    setButtonLoading(buttonElement, false);
+                                } else {
+                                    hideLoading();
+                                }
+
+                                // 如果没有 AI，显示简单提示
+                                if (!initialData.done) {
+                                    showToast('任务已撤销', 'success');
+                                }
+                                // 如果已完成，等待 AI 反馈
+                            } else if (msg.type === 'feedback_chunk') {
+                                // 渐进式显示反馈
+                                if (msg.data) {
+                                    feedbackText += msg.data;
+
+                                    // 创建或更新反馈提示
+                                    if (!feedbackToast) {
+                                        feedbackToast = showToast(feedbackText, 'success', 0); // 0 = 不自动关闭
+                                    } else {
+                                        // 更新现有提示的内容
+                                        const toastElement = document.querySelector(`[data-toast-id="${feedbackToast}"] .toast-content`);
+                                        if (toastElement) {
+                                            toastElement.textContent = feedbackText;
+                                        }
+                                    }
+                                }
+                            }
+                        } catch (e) {
+                            console.error('解析消息失败:', e, line);
+                        }
+                    }
+                }
+
+                // 流结束后，如果没有反馈但有完成状态，显示默认提示
+                if (!feedbackToast && initialData && initialData.done) {
+                    showToast('任务已完成', 'success');
+                }
+
             } catch (error) {
                 console.error('操作失败:', error);
                 showToast('网络错误', 'error');
+            } finally {
+                // 确保隐藏加载状态
+                if (buttonElement) {
+                    setButtonLoading(buttonElement, false);
+                } else {
+                    hideLoading();
+                }
             }
         }
 
@@ -981,9 +1252,10 @@
             e.preventDefault();
             const input = document.getElementById('todoInput');
             const priority = document.getElementById('prioritySelect').value;
+            const submitButton = e.target.querySelector('button[type="submit"]');
             if (input.value.trim()) {
-                // 默认不使用 AI 优化
-                addTodo(input.value.trim(), priority, false);
+                // 默认不使用 AI 优化，传递按钮元素用于加载状态
+                addTodo(input.value.trim(), priority, false, submitButton);
             }
         });
 
