@@ -54,11 +54,6 @@ class UserProfile:
                 "last_completed_date": None,
             },
             "hourly_activity": [0] * 24,  # 24小时时段
-            "task_categories": {},  # {"工作": {"count": 10, "completed": 8}}
-            "anxiety_patterns": {
-                "high_anxiety_count": 0,
-                "detected_keywords": [],
-            },
             "recent_7_days": {
                 "tasks_completed": 0,
                 "most_active_hour": None,
@@ -79,7 +74,6 @@ class UserProfile:
             self.data['stats']['completed_tasks'] += 1
             self._update_hourly_activity()
             self._update_streak()
-            self._update_categories(todo, 'complete')
             self.data['recent_7_days']['tasks_completed'] += 1
 
         elif action == 'delete':
@@ -119,46 +113,6 @@ class UserProfile:
 
         self.data['stats']['last_completed_date'] = today
 
-    def _update_categories(self, todo, action: str):
-        """更新任务类别统计"""
-        category = self._classify_task(todo.text)
-
-        if category not in self.data['task_categories']:
-            self.data['task_categories'][category] = {
-                "count": 0,
-                "completed": 0,
-            }
-
-        if action == 'complete':
-            self.data['task_categories'][category]['completed'] += 1
-
-        self.data['task_categories'][category]['count'] += 1
-
-    def _classify_task(self, text: str) -> str:
-        """简单分类任务（用于统计）"""
-        text_lower = text.lower()
-
-        # 工作关键词
-        work_keywords = ["会议", "报告", "文档", "代码", "bug", "修复", "邮件"]
-        # 学习关键词
-        study_keywords = ["学习", "阅读", "课程", "练习", "笔记"]
-        # 运动关键词
-        exercise_keywords = ["跑", "健身", "运动", "瑜伽", "锻炼"]
-
-        for keyword in work_keywords:
-            if keyword in text_lower:
-                return "工作"
-
-        for keyword in study_keywords:
-            if keyword in text_lower:
-                return "学习"
-
-        for keyword in exercise_keywords:
-            if keyword in text_lower:
-                return "运动"
-
-        return "其他"
-
     def get_completion_rate(self) -> float:
         """计算完成率"""
         total = self.data['stats']['total_tasks']
@@ -189,15 +143,6 @@ class UserProfile:
 
         return [h for h, count in indexed[:top_n] if count > 0]
 
-    def get_top_category(self) -> Optional[str]:
-        """获取最常做的任务类别"""
-        categories = self.data['task_categories']
-
-        if not categories:
-            return None
-
-        return max(categories.items(), key=lambda x: x[1]['count'])[0]
-
     def get_context_for_ai(self) -> str:
         """生成给 AI 的上下文字符串
 
@@ -207,7 +152,6 @@ class UserProfile:
         stats = self.data['stats']
         completion_rate = self.get_completion_rate()
         peak_hours = self.get_peak_hours(2)
-        top_category = self.get_top_category()
 
         context_parts = []
 
@@ -223,10 +167,6 @@ class UserProfile:
         if peak_hours:
             hours_str = "、".join([f"{h}点" for h in peak_hours])
             context_parts.append(f"高效时段：{hours_str}")
-
-        # 擅长领域
-        if top_category:
-            context_parts.append(f"擅长领域：{top_category}")
 
         if not context_parts:
             return ""

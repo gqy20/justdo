@@ -186,9 +186,9 @@ def main():
                     text = ai.enhance_input(text)
                     # 提供更清晰的反馈
                     if text == original_text:
-                        print(f"✓ AI 已处理: {text} (原文已足够好)")
+                        print(f"→ AI 已处理: {text} (原文已足够好)")
                     else:
-                        print(f"✓ AI 优化: {original_text} → {text}")
+                        print(f"→ AI 优化: {original_text} → {text}")
                 except ImportError:
                     _handle_ai_import_error()
                 except Exception as e:
@@ -199,8 +199,7 @@ def main():
             # 数字转换为优先级字符串
             priority_map = {1: "high", 2: "medium", 3: "low"}
             todo = manager.add(text, priority=priority_map[args.level])
-            emoji = todo.priority_emoji
-            print(f"✓ 已添加任务 [{todo.id}] {emoji}: {todo.text}")
+            print(f"→ 任务 [{todo.id}]: {todo.text}")
 
             # 更新用户画像
             _update_profile(todo, 'add')
@@ -286,7 +285,7 @@ def main():
                 except Exception as e:
                     # 失败时回退到简单消息
                     for todo_id in todo_ids:
-                        print(f"✓ 任务 [{todo_id}] 已标记为完成")
+                        print(f"→ 任务 [{todo_id}] 已标记为完成")
             elif os.getenv("OPENAI_API_KEY"):
                 # 单个任务时使用原有逻辑
                 try:
@@ -307,10 +306,10 @@ def main():
                         print(f"✓ {feedback}")
                 except Exception:
                     for todo_id in todo_ids:
-                        print(f"✓ 任务 [{todo_id}] 已标记为完成")
+                        print(f"→ 任务 [{todo_id}] 已标记为完成")
             else:
                 for todo_id in todo_ids:
-                    print(f"✓ 任务 [{todo_id}] 已标记为完成")
+                    print(f"→ 任务 [{todo_id}] 已标记为完成")
 
         elif args.command == "delete":
             todo_ids = parse_ids(args.ids)
@@ -321,7 +320,7 @@ def main():
                 manager.delete(todo_id)
                 if todo:
                     _update_profile(todo, 'delete')
-                print(f"✓ 任务 [{todo_id}] 已删除")
+                print(f"→ 任务 [{todo_id}] 已删除")
 
         elif args.command == "clear":
             todos_before = manager.list()
@@ -338,18 +337,18 @@ def main():
                     )
                     print(celebration)
                 except Exception:
-                    print("✓ 已清除所有已完成任务")
+                    print("→ 已清除所有已完成任务")
             elif not todos_after:
-                print("✓ 已清除所有已完成任务")
+                print("→ 已清除所有已完成任务")
             else:
-                print("✓ 已清除所有已完成任务")
+                print("→ 已清除所有已完成任务")
 
         elif args.command == "suggest":
             # 获取未完成任务
             todos = [t for t in manager.list() if not t.done]
 
             if not todos:
-                print("✓ 所有任务已完成，干得好！🎉")
+                print("→ 所有任务已完成")
             elif args.ai:
                 # AI 智能建议（流式输出，使用情绪价值引擎）
                 if not os.getenv("OPENAI_API_KEY"):
@@ -384,10 +383,9 @@ def main():
             else:
                 # 按优先级排序显示
                 sorted_todos = sorted(todos, key=lambda t: (-t.priority_weight, t.id))
-                print("📋 建议按优先级处理：")
+                print("建议按优先级处理：")
                 for todo in sorted_todos:
-                    emoji = todo.priority_emoji
-                    print(f"  [{todo.id}] {emoji} {todo.text}")
+                    print(f"  [{todo.id}] {todo.text}")
 
     except ValueError as e:
         print(f"错误: {e}", file=sys.stderr)
