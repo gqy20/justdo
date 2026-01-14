@@ -96,15 +96,15 @@ pip install -e ".[dev]"
 pytest
 
 # 查看测试覆盖率
-pytest --cov=todo
+pytest --cov=justdo
 ```
 
 ## 项目结构
 
 ```
-do-it/
+justdo/
 ├── src/
-│   └── todo/
+│   └── justdo/
 │       ├── __init__.py
 │       ├── models.py      # 数据模型（TodoItem）
 │       ├── manager.py     # 核心业务逻辑（TodoManager）
@@ -115,7 +115,7 @@ do-it/
 │       ├── test_manager.py
 │       └── test_cli.py
 ├── pyproject.toml         # 包配置
-├── todo.json              # 数据存储（自动生成）
+├── justdo.json            # 数据存储（自动生成）
 └── README.md
 ```
 
