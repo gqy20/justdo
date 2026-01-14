@@ -120,53 +120,6 @@ class TestAIHandlerEnhanceInput:
         assert result == "优化的描述"
 
 
-class TestAIHandlerSuggestNext:
-    """测试 suggest_next 方法"""
-
-    @patch('todo.ai.OpenAI')
-    def test_suggest_next_with_empty_todos(self, mock_openai):
-        """测试：空任务列表应返回完成消息"""
-        # Arrange
-        mock_client = MagicMock()
-        mock_openai.return_value = mock_client
-        config = AIConfig(api_key="test")
-        handler = AIHandler(config)
-
-        # Act
-        result = handler.suggest_next([])
-
-        # Assert
-        assert result == "🎉 所有任务已完成！"
-        mock_client.chat.completions.create.assert_not_called()
-
-    @patch('todo.ai.OpenAI')
-    def test_suggest_next_filters_completed_todos(self, mock_openai):
-        """测试：应过滤已完成的任务"""
-        # Arrange
-        mock_client = MagicMock()
-        mock_openai.return_value = mock_client
-        mock_response = MagicMock()
-        mock_response.choices = [MagicMock(message=MagicMock(content="建议先做任务1"))]
-        mock_client.chat.completions.create.return_value = mock_response
-
-        # 创建模拟任务
-        todo1 = MagicMock(id=1, text="任务1", done=False, priority="high")
-        todo2 = MagicMock(id=2, text="任务2", done=True, priority="high")
-
-        config = AIConfig(api_key="test")
-        handler = AIHandler(config)
-
-        # Act
-        result = handler.suggest_next([todo1, todo2])
-
-        # Assert
-        call_args = mock_client.chat.completions.create.call_args
-        prompt = call_args[1]['messages'][0]['content']
-        assert "任务1" in prompt
-        assert "任务2" not in prompt  # 已完成任务不应在提示中
-        assert result == "建议先做任务1"
-
-
 class TestAIHandlerChat:
     """测试 chat 方法"""
 

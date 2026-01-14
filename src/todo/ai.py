@@ -10,7 +10,6 @@ from openai import OpenAI
 
 from .prompts import (
     PROMPT_ENHANCE,
-    PROMPT_SUGGEST,
     CHAT_SYSTEM_PROMPT,
 )
 
@@ -72,43 +71,6 @@ class AIHandler:
         # 回退机制：如果 AI 返回空字符串，使用原始文本
         return enhanced if enhanced else text
 
-    def suggest_next(self, todos: List) -> str:
-        """AI 建议下一步
-
-        Args:
-            todos: 任务列表
-
-        Returns:
-            建议文本
-        """
-        # 过滤未完成的任务
-        incomplete_todos = [t for t in todos if not t.done]
-
-        if not incomplete_todos:
-            return "🎉 所有任务已完成！"
-
-        # 格式化任务列表
-        todos_text = "\n".join([
-            f"- [{t.id}] {t.text} (优先级: {t.priority}, {'已完成' if t.done else '未完成'})"
-            for t in incomplete_todos
-        ])
-
-        # 构建请求参数
-        params = {
-            "model": self.config.model,
-            "messages": [
-                {"role": "user", "content": PROMPT_SUGGEST.format(todos=todos_text)}
-            ],
-            "max_tokens": self.config.max_tokens,
-            "temperature": 0.7,
-        }
-        # GLM-4.x 需要禁用思考模式以加快速度
-        if self._should_disable_thinking():
-            params["extra_body"] = {"thinking": {"type": "disabled"}}
-
-        response = self.client.chat.completions.create(**params)
-        return response.choices[0].message.content.strip()
-
     def chat(self, user_input: str, todos: List) -> str:
         """AI 对话
 
@@ -144,46 +106,6 @@ class AIHandler:
 
         response = self.client.chat.completions.create(**params)
         return response.choices[0].message.content.strip()
-
-    def suggest_next_stream(self, todos: List):
-        """AI 建议下一步（流式输出）
-
-        Args:
-            todos: 任务列表
-
-        Yields:
-            响应文本片段
-        """
-        # 过滤未完成的任务
-        incomplete_todos = [t for t in todos if not t.done]
-
-        if not incomplete_todos:
-            yield "🎉 所有任务已完成！"
-            return
-
-        # 格式化任务列表
-        todos_text = "\n".join([
-            f"- [{t.id}] {t.text} (优先级: {t.priority}, {'已完成' if t.done else '未完成'})"
-            for t in incomplete_todos
-        ])
-
-        # 构建请求参数
-        params = {
-            "model": self.config.model,
-            "messages": [
-                {"role": "user", "content": PROMPT_SUGGEST.format(todos=todos_text)}
-            ],
-            "max_tokens": self.config.max_tokens,
-            "temperature": 0.7,
-            "stream": True,
-        }
-        # GLM-4.x 需要禁用思考模式以加快速度
-        if self._should_disable_thinking():
-            params["extra_body"] = {"thinking": {"type": "disabled"}}
-
-        for chunk in self.client.chat.completions.create(**params):
-            if chunk.choices[0].delta.content:
-                yield chunk.choices[0].delta.content
 
     def chat_stream(self, user_input: str, todos: List):
         """AI 对话（流式输出）

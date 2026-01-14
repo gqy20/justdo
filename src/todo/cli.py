@@ -9,6 +9,12 @@ import argparse
 from .manager import TodoManager
 
 
+def _handle_ai_import_error() -> None:
+    """处理 AI 导入错误的辅助函数"""
+    print("错误: AI 功能需要安装 openai 库：uv pip install openai", file=sys.stderr)
+    sys.exit(1)
+
+
 def parse_ids(id_strings):
     """解析 ID 字符串列表，支持范围语法
 
@@ -133,8 +139,7 @@ def main():
                 print(chunk, end="", flush=True)
             print()  # 换行
         except ImportError:
-            print("错误: AI 功能需要安装 openai 库：uv pip install openai", file=sys.stderr)
-            sys.exit(1)
+            _handle_ai_import_error()
         except Exception as e:
             print(f"AI 错误: {e}", file=sys.stderr)
             sys.exit(1)
@@ -167,8 +172,7 @@ def main():
                     else:
                         print(f"✓ AI 优化: {original_text} → {text}")
                 except ImportError:
-                    print("错误: AI 功能需要安装 openai 库：uv pip install openai", file=sys.stderr)
-                    sys.exit(1)
+                    _handle_ai_import_error()
                 except Exception as e:
                     print(f"错误: AI 优化失败 - {e}", file=sys.stderr)
                     # 继续使用原始文本
@@ -343,8 +347,7 @@ def main():
                         print(chunk, end="", flush=True)
                     print()  # 换行
                 except ImportError:
-                    print("错误: AI 功能需要安装 openai 库：uv pip install openai", file=sys.stderr)
-                    sys.exit(1)
+                    _handle_ai_import_error()
             else:
                 # 按优先级排序显示
                 sorted_todos = sorted(todos, key=lambda t: (-t.priority_weight, t.id))
