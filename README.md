@@ -179,15 +179,29 @@ justdo/
 ├── tests/
 │   ├── unit/                 # 单元测试
 │   └── integration/          # 集成测试
+├── docs/                     # 项目文档
+│   ├── api.md                # API 文档
+│   ├── architecture.md       # 架构设计
+│   ├── components.md         # 组件清单
+│   ├── development.md        # 开发指南
+│   └── testing.md            # 测试策略
 ├── pyproject.toml            # 包配置
 ├── justdo.json               # 数据存储（自动生成）
 ├── justdo.profile.json       # 用户画像（自动生成）
 └── justdo.trash.json         # 回收站（自动生成）
 ```
 
-## API 文档
+## 📚 文档
 
-启动 Web 服务后，访问：
+- [API 文档](docs/api.md) - RESTful API 完整参考
+- [架构设计](docs/architecture.md) - 系统架构与模块关系
+- [组件清单](docs/components.md) - 模块职责边界
+- [开发指南](docs/development.md) - 开发环境与工作流
+- [测试策略](docs/testing.md) - TDD 与测试覆盖
+
+### 在线 API 文档
+
+启动 Web 服务后访问：
 - **Swagger UI**: http://localhost:8848/docs
 - **ReDoc**: http://localhost:8848/redoc
 

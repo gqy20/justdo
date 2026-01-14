@@ -19,17 +19,17 @@ install:
 # 启动开发服务器（后台运行）
 dev:
 	@echo "启动开发服务器..."
-	@.venv/bin/uvicorn todo.api:app --host 0.0.0.0 --port 8848 --reload --log-level debug 2>&1 &
+	@.venv/bin/uvicorn justdo.api:app --host 0.0.0.0 --port 8848 --reload --log-level debug 2>&1 &
 
 # 启动 Web 服务器（前台运行）
 web:
 	@echo "启动 Web 服务器 (http://0.0.0.0:8848)..."
-	@.venv/bin/uvicorn todo.api:app --host 0.0.0.0 --port 8848 --log-level info
+	@.venv/bin/uvicorn justdo.api:app --host 0.0.0.0 --port 8848 --log-level info
 
 # 停止开发服务器
 stop:
 	@echo "停止开发服务器..."
-	@pkill -f "uvicorn todo.api:app" || echo "服务器未运行"
+	@pkill -f "uvicorn justdo.api:app" || echo "服务器未运行"
 
 # 运行测试
 test:

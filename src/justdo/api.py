@@ -159,7 +159,7 @@ async def root():
     """首页 - 返回单页应用"""
     # 动态查找 static 目录
     import justdo.api
-    static_dir = Path(todo.api.__file__).parent / "static"
+    static_dir = Path(justdo.api.__file__).parent / "static"
     index_file = static_dir / "index.html"
 
     if index_file.exists():
@@ -855,7 +855,7 @@ def main():
     """
     import uvicorn
     uvicorn.run(
-        "todo.api:app",
+        "justdo.api:app",
         host="0.0.0.0",
         port=DEFAULT_PORT,
         log_level="info"
