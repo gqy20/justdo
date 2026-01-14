@@ -8,7 +8,6 @@ import os
 from datetime import datetime, date, timedelta
 from pathlib import Path
 from typing import List, Dict, Optional
-from collections import Counter
 
 from .prompts import (
     PROMPT_USER_TYPE_ANALYSIS,

@@ -8,7 +8,7 @@ import asyncio
 import json
 from datetime import datetime
 from pathlib import Path
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict
 from fastapi import FastAPI, HTTPException, status
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, StreamingResponse
@@ -17,28 +17,7 @@ from pydantic import BaseModel, Field
 from .manager import TodoManager
 from .user_profile import get_profile_path, UserProfile, guess_category
 from .trash import get_trash_path, TrashManager
-
-
-def _get_time_context() -> str:
-    """获取当前时段
-
-    Returns:
-        时段描述
-    """
-    hour = datetime.now().hour
-
-    if 6 <= hour < 9:
-        return "早晨"
-    elif 9 <= hour < 12:
-        return "上午"
-    elif 12 <= hour < 14:
-        return "中午"
-    elif 14 <= hour < 18:
-        return "下午"
-    elif 18 <= hour < 22:
-        return "晚上"
-    else:
-        return "深夜"
+from .emotion import _get_time_context
 
 
 # ============================================================================

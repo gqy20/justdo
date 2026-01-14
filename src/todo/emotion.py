@@ -6,7 +6,7 @@
 import os
 import asyncio
 from datetime import datetime
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Optional, List, Dict
 from openai import OpenAI
 
