@@ -65,6 +65,23 @@ def get_manager() -> TodoManager:
     return TodoManager()
 
 
+def todo_to_response(todo) -> TodoResponse:
+    """将 TodoItem 转换为 TodoResponse
+
+    Args:
+        todo: TodoItem 对象
+
+    Returns:
+        TodoResponse 对象
+    """
+    return TodoResponse(
+        id=todo.id,
+        text=todo.text,
+        priority=todo.priority,
+        done=todo.done
+    )
+
+
 # ============================================================================
 # 路由
 # ============================================================================
@@ -85,10 +102,7 @@ def list_todos(done: Optional[bool] = None):
     if done is not None:
         todos = [t for t in todos if t.done == done]
 
-    return [
-        TodoResponse(id=t.id, text=t.text, priority=t.priority, done=t.done)
-        for t in todos
-    ]
+    return [todo_to_response(t) for t in todos]
 
 
 @app.post("/api/todos", response_model=TodoResponse, status_code=status.HTTP_201_CREATED)
@@ -104,12 +118,7 @@ def create_todo(todo: TodoCreate):
     manager = get_manager()
     try:
         result = manager.add(todo.text, todo.priority)
-        return TodoResponse(
-            id=result.id,
-            text=result.text,
-            priority=result.priority,
-            done=result.done
-        )
+        return todo_to_response(result)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -131,12 +140,7 @@ def mark_done(todo_id: int):
         todos = manager.list()
         todo = next((t for t in todos if t.id == todo_id), None)
         if todo:
-            return TodoResponse(
-                id=todo.id,
-                text=todo.text,
-                priority=todo.priority,
-                done=todo.done
-            )
+            return todo_to_response(todo)
     except ValueError as e:
         if "不存在" in str(e):
             raise HTTPException(status_code=404, detail="Task not found")
@@ -185,17 +189,7 @@ def suggest():
     todos = [t for t in manager.list() if not t.done]
     sorted_todos = sorted(todos, key=lambda t: (-t.priority_weight, t.id))
 
-    return SuggestResponse(
-        todos=[
-            TodoResponse(
-                id=t.id,
-                text=t.text,
-                priority=t.priority,
-                done=t.done
-            )
-            for t in sorted_todos
-        ]
-    )
+    return SuggestResponse(todos=[todo_to_response(t) for t in sorted_todos])
 
 
 @app.post("/api/chat", response_model=ChatResponse)
