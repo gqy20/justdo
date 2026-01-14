@@ -46,6 +46,7 @@ PROMPT_TASK_COMPLETED = """你是用户贴心的任务助手，用户刚完成�
 当前时段：{time_context}
 今日已完成：{today_completed}/{today_total} 个任务
 剩余任务数：{remaining_count} 个
+{user_profile}
 
 请分析任务并生成一句简短的鼓励/反馈（20-40字）：
 

@@ -9,6 +9,24 @@ import argparse
 from .manager import TodoManager
 
 
+def _update_profile(todo, action: str):
+    """更新用户画像
+
+    Args:
+        todo: TodoItem 对象
+        action: 动作 ('add', 'complete', 'delete')
+    """
+    try:
+        from .user_profile import get_profile_path, UserProfile
+        profile_path = get_profile_path()
+        profile = UserProfile(profile_path)
+        profile.record_task(todo, action)
+        profile.save()
+    except Exception:
+        # 静默忽略，不影响主要功能
+        pass
+
+
 def _handle_ai_import_error() -> None:
     """处理 AI 导入错误的辅助函数"""
     print("错误: AI 功能需要安装 openai 库：uv pip install openai", file=sys.stderr)
@@ -184,6 +202,9 @@ def main():
             emoji = todo.priority_emoji
             print(f"✓ 已添加任务 [{todo.id}] {emoji}: {todo.text}")
 
+            # 更新用户画像
+            _update_profile(todo, 'add')
+
         elif args.command == "list":
             todos = manager.list()
             # 状态过滤
@@ -210,9 +231,12 @@ def main():
             todo_ids = parse_ids(args.ids)
             all_todos = manager.list()
 
-            # 先标记所有任务为完成
+            # 先标记所有任务为完成，并记录到用户画像
             for todo_id in todo_ids:
+                todo = next((t for t in all_todos if t.id == todo_id), None)
                 manager.mark_done(todo_id)
+                if todo:
+                    _update_profile(todo, 'complete')
 
             # 并行生成所有情绪反馈（当有多个任务时）
             if os.getenv("OPENAI_API_KEY") and len(todo_ids) > 1:
@@ -290,8 +314,13 @@ def main():
 
         elif args.command == "delete":
             todo_ids = parse_ids(args.ids)
+            all_todos = manager.list()
+
             for todo_id in todo_ids:
+                todo = next((t for t in all_todos if t.id == todo_id), None)
                 manager.delete(todo_id)
+                if todo:
+                    _update_profile(todo, 'delete')
                 print(f"✓ 任务 [{todo_id}] 已删除")
 
         elif args.command == "clear":

@@ -169,7 +169,7 @@ def _get_time_context() -> str:
 
 
 def _prepare_context(**context) -> dict:
-    """准备上下文，添加时段等辅助信息
+    """准备上下文，添加时段和用户画像等辅助信息
 
     Args:
         **context: 原始上下文
@@ -182,6 +182,21 @@ def _prepare_context(**context) -> dict:
     # 添加时段（如果没有明确指定）
     if "time_context" not in enhanced:
         enhanced["time_context"] = _get_time_context()
+
+    # 添加用户画像上下文（如果有任务文本）
+    try:
+        from .user_profile import get_profile_path, UserProfile
+        profile_path = get_profile_path()
+        profile = UserProfile(profile_path)
+
+        # 只在有任务时添加画像上下文
+        if "task_text" in context or context.get("incomplete_count", 0) > 0:
+            profile_context = profile.get_context_for_ai()
+            if profile_context:
+                enhanced["user_profile"] = profile_context
+    except Exception:
+        # 如果画像加载失败，静默忽略
+        pass
 
     return enhanced
 
