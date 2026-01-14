@@ -15,6 +15,7 @@ from .prompts import (
     PROMPT_TASK_ADDED,
     PROMPT_SUGGEST_ENHANCED,
 )
+from .task_analyzer import TaskAnalyzer, TaskCategory, EmotionResult
 
 
 @dataclass
@@ -145,6 +146,40 @@ class EmotionEngine:
         return await asyncio.gather(*tasks)
 
 
+def _enhance_context_with_analysis(**context) -> dict:
+    """使用 TaskAnalyzer 增强上下文
+
+    Args:
+        **context: 原始上下文
+
+    Returns:
+        增强后的上下文（包含任务分类、情绪检测、时段）
+    """
+    analyzer = TaskAnalyzer()
+    enhanced = context.copy()
+
+    # 如果有 task_text，进行分析
+    if "task_text" in context:
+        analysis = analyzer.analyze(context["task_text"])
+
+        # 添加任务分类
+        if "task_category" not in enhanced:
+            category = analysis["category"]
+            enhanced["task_category"] = category.value
+
+        # 添加情绪检测
+        if "anxiety_level" not in enhanced:
+            emotion = analysis["emotion"]
+            enhanced["anxiety_level"] = emotion.anxiety_level
+            enhanced["anxiety_keywords"] = ", ".join(emotion.keywords) if emotion.keywords else "无"
+
+        # 添加时段（如果没有明确指定）
+        if "time_context" not in enhanced:
+            enhanced["time_context"] = analysis["time_context"]
+
+    return enhanced
+
+
 def trigger_emotion(scenario: EmotionScenario, **context) -> str:
     """触发情绪价值场景
 
@@ -160,8 +195,11 @@ def trigger_emotion(scenario: EmotionScenario, **context) -> str:
     """
     from todo.ai import get_ai_handler
 
+    # 增强上下文（添加任务分类、情绪检测、时段）
+    enhanced_context = _enhance_context_with_analysis(**context)
+
     # 格式化提示词
-    prompt = scenario.prompt_template.format(**context)
+    prompt = scenario.prompt_template.format(**enhanced_context)
 
     # 获取 AI 引擎
     ai = get_ai_handler()

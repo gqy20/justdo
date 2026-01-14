@@ -218,7 +218,7 @@ def main():
             if os.getenv("OPENAI_API_KEY") and len(todo_ids) > 1:
                 try:
                     import asyncio
-                    from .emotion import EmotionEngine, EMOTION_SCENARIOS
+                    from .emotion import EmotionEngine, EMOTION_SCENARIOS, _enhance_context_with_analysis
                     from .ai import get_ai_handler
 
                     # 准备所有任务的上下文
@@ -228,14 +228,18 @@ def main():
                         completed_todos = [t for t in all_todos if t.done and t.id in todo_ids]
                         remaining_count = len([t for t in all_todos if not t.done])
 
+                        # 使用增强上下文函数
+                        base_context = {
+                            "task_text": todo.text if todo else "",
+                            "task_priority": todo.priority if todo else "",
+                            "today_completed": len(completed_todos),
+                            "today_total": len(all_todos),
+                            "remaining_count": remaining_count,
+                        }
+                        enhanced_context = _enhance_context_with_analysis(**base_context)
+
                         # 格式化提示词
-                        prompt = EMOTION_SCENARIOS["task_completed"].prompt_template.format(
-                            task_text=todo.text if todo else "",
-                            task_priority=todo.priority if todo else "",
-                            today_completed=len(completed_todos),
-                            today_total=len(all_todos),
-                            remaining_count=remaining_count,
-                        )
+                        prompt = EMOTION_SCENARIOS["task_completed"].prompt_template.format(**enhanced_context)
                         contexts.append(prompt)
 
                     # 并行生成所有反馈
