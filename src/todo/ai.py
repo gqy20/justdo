@@ -173,6 +173,88 @@ class AIHandler:
         response = self.client.chat.completions.create(**params)
         return response.choices[0].message.content.strip()
 
+    def suggest_next_stream(self, todos: List):
+        """AI 建议下一步（流式输出）
+
+        Args:
+            todos: 任务列表
+
+        Yields:
+            响应文本片段
+        """
+        # 过滤未完成的任务
+        incomplete_todos = [t for t in todos if not t.done]
+
+        if not incomplete_todos:
+            yield "🎉 所有任务已完成！"
+            return
+
+        # 格式化任务列表
+        todos_text = "\n".join([
+            f"- [{t.id}] {t.text} (优先级: {t.priority}, {'已完成' if t.done else '未完成'})"
+            for t in incomplete_todos
+        ])
+
+        # 构建请求参数
+        params = {
+            "model": self.config.model,
+            "messages": [
+                {"role": "user", "content": self.PROMPT_SUGGEST.format(todos=todos_text)}
+            ],
+            "max_tokens": self.config.max_tokens,
+            "temperature": 0.7,
+            "stream": True,
+        }
+        # GLM-4.x 需要禁用思考模式以加快速度
+        if self._should_disable_thinking():
+            params["extra_body"] = {"thinking": {"type": "disabled"}}
+
+        for chunk in self.client.chat.completions.create(**params):
+            if chunk.choices[0].delta.content:
+                yield chunk.choices[0].delta.content
+
+    def chat_stream(self, user_input: str, todos: List):
+        """AI 对话（流式输出）
+
+        Args:
+            user_input: 用户输入
+            todos: 任务列表
+
+        Yields:
+            响应文本片段
+        """
+        # 格式化任务列表
+        todos_text = "\n".join([
+            f"- [{t.id}] {t.text} (优先级: {t.priority})"
+            for t in todos
+        ])
+
+        system_prompt = f"""你是一个友善的 Todo 助手，帮助用户管理任务和克服拖延。
+
+当前任务列表：
+{todos_text}
+
+回答要简洁、有同理心、实用。"""
+
+        # 构建请求参数
+        params = {
+            "model": self.config.model,
+            "messages": [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_input}
+            ],
+            "max_tokens": 300,
+            "temperature": 0.8,
+            "stream": True,
+        }
+        # GLM-4.x 需要禁用思考模式以加快速度
+        if self._should_disable_thinking():
+            params["extra_body"] = {"thinking": {"type": "disabled"}}
+
+        for chunk in self.client.chat.completions.create(**params):
+            if chunk.choices[0].delta.content:
+                yield chunk.choices[0].delta.content
+
 
 def get_ai_handler() -> AIHandler:
     """获取 AI 处理器实例

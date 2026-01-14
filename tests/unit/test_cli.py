@@ -233,7 +233,7 @@ class TestCLISuggestCommand:
     @patch.dict("os.environ", {"OPENAI_API_KEY": "test-key"})
     @patch("todo.ai.AIHandler")
     def test_suggest_with_ai_uses_ai_suggestion(self, mock_ai_handler, mock_manager_class):
-        """测试：suggest --ai 应使用 AI 建议下一步"""
+        """测试：suggest --ai 应使用 AI 建议下一步（流式输出）"""
         # Arrange
         mock_manager = MagicMock()
         mock_manager_class.return_value = mock_manager
@@ -242,7 +242,8 @@ class TestCLISuggestCommand:
 
         mock_ai = MagicMock()
         mock_ai_handler.return_value = mock_ai
-        mock_ai.suggest_next.return_value = "建议优先完成写报告任务"
+        # 流式方法返回生成器
+        mock_ai.suggest_next_stream.return_value = iter(["建议优先完成写报告任务"])
 
         # Act
         with patch("sys.stdout", new_callable=StringIO) as mock_stdout:
@@ -250,7 +251,7 @@ class TestCLISuggestCommand:
             output = mock_stdout.getvalue()
 
         # Assert - AI 应被调用
-        mock_ai.suggest_next.assert_called_once()
+        mock_ai.suggest_next_stream.assert_called_once()
         assert "建议优先完成写报告任务" in output
 
 

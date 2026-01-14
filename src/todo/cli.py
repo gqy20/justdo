@@ -128,8 +128,10 @@ def main():
             ai = get_ai_handler()
             manager = TodoManager()
             todos = manager.list()
-            response = ai.chat(args.chat, todos)
-            print(response)
+            # 流式输出
+            for chunk in ai.chat_stream(args.chat, todos):
+                print(chunk, end="", flush=True)
+            print()  # 换行
         except ImportError:
             print("错误: AI 功能需要安装 openai 库：uv pip install openai", file=sys.stderr)
             sys.exit(1)
@@ -219,15 +221,18 @@ def main():
             if not todos:
                 print("✓ 所有任务已完成，干得好！🎉")
             elif args.ai:
-                # AI 智能建议
+                # AI 智能建议（流式输出）
                 if not os.getenv("OPENAI_API_KEY"):
                     print("错误: --ai 需要 OPENAI_API_KEY 环境变量", file=sys.stderr)
                     sys.exit(1)
                 try:
                     from .ai import get_ai_handler
                     ai = get_ai_handler()
-                    suggestion = ai.suggest_next(todos)
-                    print(f"💡 AI 建议: {suggestion}")
+                    print("💡 AI 建议: ", end="", flush=True)
+                    # 流式输出
+                    for chunk in ai.suggest_next_stream(todos):
+                        print(chunk, end="", flush=True)
+                    print()  # 换行
                 except ImportError:
                     print("错误: AI 功能需要安装 openai 库：uv pip install openai", file=sys.stderr)
                     sys.exit(1)
