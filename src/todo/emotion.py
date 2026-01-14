@@ -6,28 +6,12 @@
 import os
 import asyncio
 from datetime import datetime
-from dataclasses import dataclass
 from typing import Optional, List, Dict
 from openai import OpenAI
 
 from .prompts import (
-    PROMPT_TASK_COMPLETED,
-    PROMPT_LIST_CLEARED,
-    PROMPT_TASK_ADDED,
-    PROMPT_SUGGEST_ENHANCED,
     PROMPT_UNIFIED_ANALYSIS,
 )
-
-
-@dataclass
-class EmotionScenario:
-    """情绪价值场景配置"""
-    name: str
-    prompt_template: str
-    max_tokens: int = 80
-    temperature: float = 0.8
-    stream: bool = False
-    fallback_messages: Optional[List[str]] = None
 
 
 class EmotionEngine:
@@ -167,106 +151,6 @@ def _get_time_context() -> str:
         return "晚上"
     else:
         return "深夜"
-
-
-def _prepare_context(**context) -> dict:
-    """准备上下文，添加时段和用户画像等辅助信息
-
-    Args:
-        **context: 原始上下文
-
-    Returns:
-        增强后的上下文
-    """
-    enhanced = context.copy()
-
-    # 添加时段（如果没有明确指定）
-    if "time_context" not in enhanced:
-        enhanced["time_context"] = _get_time_context()
-
-    # 添加用户画像上下文（如果有任务文本）
-    try:
-        from .user_profile import get_profile_path, UserProfile
-        profile_path = get_profile_path()
-        profile = UserProfile(profile_path)
-
-        # 只在有任务时添加画像上下文
-        if "task_text" in context or context.get("incomplete_count", 0) > 0:
-            profile_context = profile.get_context_for_ai()
-            if profile_context:
-                enhanced["user_profile"] = profile_context
-    except Exception:
-        # 如果画像加载失败，静默忽略
-        pass
-
-    return enhanced
-
-
-def trigger_emotion(scenario: EmotionScenario, **context) -> str:
-    """触发情绪价值场景
-
-    Args:
-        scenario: 情绪场景配置
-        **context: 格式化上下文变量
-
-    Returns:
-        AI 生成的情绪反馈
-
-    Raises:
-        Exception: 如果 AI 调用失败且没有 fallback 消息
-    """
-    from todo.ai import get_ai_handler
-
-    # 准备上下文（添加时段等辅助信息）
-    enhanced_context = _prepare_context(**context)
-
-    # 格式化提示词
-    prompt = scenario.prompt_template.format(**enhanced_context)
-
-    # 获取 AI 引擎
-    ai = get_ai_handler()
-    engine = EmotionEngine(ai.config)
-
-    try:
-        return engine.generate(
-            prompt=prompt,
-            max_tokens=scenario.max_tokens,
-            temperature=scenario.temperature,
-            stream=scenario.stream,
-        )
-    except Exception as e:
-        # AI 调用失败，返回错误说明
-        return f"（AI 暂不可用：{e}）"
-
-
-# ============================================================================
-# 预定义情绪场景（使用 prompts.py 中的提示词）
-# ============================================================================
-
-# 预定义场景
-EMOTION_SCENARIOS: Dict[str, EmotionScenario] = {
-    "task_completed": EmotionScenario(
-        name="任务完成",
-        prompt_template=PROMPT_TASK_COMPLETED,
-        max_tokens=60,
-    ),
-    "list_cleared": EmotionScenario(
-        name="任务清空",
-        prompt_template=PROMPT_LIST_CLEARED,
-        max_tokens=200,
-    ),
-    "task_added": EmotionScenario(
-        name="任务添加",
-        prompt_template=PROMPT_TASK_ADDED,
-        max_tokens=60,
-    ),
-    "suggest": EmotionScenario(
-        name="智能建议",
-        prompt_template=PROMPT_SUGGEST_ENHANCED,
-        max_tokens=300,
-        stream=True,
-    ),
-}
 
 
 # ============================================================================
@@ -470,3 +354,138 @@ def trigger_feedback_stream(
     except Exception as e:
         # AI 调用失败
         yield f"（AI 暂不可用）"
+
+
+# ============================================================================
+# CLI 简化反馈（直接返回反馈文本）
+# ============================================================================
+
+def trigger_cli_feedback(
+    scenario: str,
+    task_text: str = "",
+    task_priority: str = "",
+    today_completed: int = 0,
+    today_total: int = 0,
+    remaining_count: int = 0,
+    completed_count: int = 0,
+    incomplete_count: int = 0,
+    high_priority_count: int = 0,
+    tasks_list: str = "",
+) -> str:
+    """CLI 简化反馈：直接返回反馈文本（兼容旧 trigger_emotion 接口）
+
+    Args:
+        scenario: 场景类型 (task_completed, list_cleared, suggest, etc.)
+        task_text: 任务文本
+        task_priority: 任务优先级
+        today_completed: 今日已完成数
+        today_total: 今日总任务数
+        remaining_count: 剩余任务数
+        completed_count: 完成数量（用于 clear）
+        incomplete_count: 未完成任务数
+        high_priority_count: 高优先级任务数
+        tasks_list: 任务列表文本
+
+    Returns:
+        反馈文本字符串
+    """
+    from todo.ai import get_ai_handler
+
+    # 构建 prompt（根据场景）
+    if scenario == "task_completed":
+        prompt = f"""用户刚刚完成了一个任务：
+- 任务内容：{task_text}
+- 优先级：{task_priority}
+- 今日已完成：{today_completed}/{today_total}
+- 剩余任务：{remaining_count}
+
+请用一句话（15-25字）给予鼓励或反馈。要求：简洁、积极、有温度。"""
+
+    elif scenario == "list_cleared":
+        prompt = f"""用户清除了所有已完成任务，共 {completed_count} 个。
+
+请用一句话（15-25字）给予鼓励或反馈。要求：简洁、积极、有温度。"""
+
+    elif scenario == "suggest":
+        prompt = f"""用户有 {incomplete_count} 个未完成任务，其中 {high_priority_count} 个高优先级。
+
+任务列表：
+{tasks_list}
+
+请用 2-3 句话给出建议（50-80字）。要求：简洁、可执行、有针对性。"""
+
+    else:
+        # 默认场景
+        prompt = "请用一句话（15-25字）给予鼓励。要求：简洁、积极、有温度。"
+
+    # 获取 AI 引擎
+    ai = get_ai_handler()
+    engine = EmotionEngine(ai.config)
+
+    try:
+        response = engine.generate(
+            prompt=prompt,
+            max_tokens=100,
+            temperature=0.8,
+            stream=False,
+        )
+        # 清理响应
+        return response.strip().strip('"\'')
+    except Exception:
+        # 失败时返回简单消息
+        if scenario == "task_completed":
+            return "太棒了！继续保持！"
+        elif scenario == "list_cleared":
+            return "已清除所有已完成任务"
+        elif scenario == "suggest":
+            return "建议按优先级逐一完成"
+        else:
+            return "继续加油！"
+
+
+def trigger_cli_feedback_stream(
+    incomplete_count: int,
+    high_priority_count: int,
+    today_completed: int,
+    tasks_list: str,
+):
+    """CLI 流式反馈：用于 suggest 命令
+
+    Args:
+        incomplete_count: 未完成任务数
+        high_priority_count: 高优先级任务数
+        today_completed: 今日已完成数
+        tasks_list: 任务列表文本
+
+    Yields:
+        反馈文本片段
+    """
+    from todo.ai import get_ai_handler
+
+    prompt = f"""用户有 {incomplete_count} 个未完成任务，其中 {high_priority_count} 个高优先级。
+
+任务列表：
+{tasks_list}
+
+请用 2-3 句话给出建议（50-80字）。要求：简洁、可执行、有针对性。"""
+
+    # 获取 AI 引擎
+    ai = get_ai_handler()
+    engine = EmotionEngine(ai.config)
+
+    try:
+        # 流式生成
+        for chunk in engine._generate_stream({
+            "model": ai.config.model,
+            "messages": [{"role": "user", "content": prompt}],
+            "max_tokens": 100,
+            "temperature": 0.8,
+            "stream": True,
+            **({"extra_body": {"thinking": {"type": "disabled"}}}
+               if engine._should_disable_thinking() else {})
+        }):
+            if chunk:
+                yield chunk
+    except Exception:
+        # 失败时返回简单建议
+        yield "建议按优先级逐一完成"

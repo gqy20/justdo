@@ -26,10 +26,11 @@ class TestUserProfileInit:
             # Act
             profile = UserProfile(str(path))
 
-            # Assert
-            assert profile.data['version'] == 1
+            # Assert (VERSION = 3)
+            assert profile.data['version'] == 3
             assert profile.data['stats']['total_tasks'] == 0
             assert profile.data['stats']['completed_tasks'] == 0
+            assert profile.data['stats']['deleted_tasks'] == 0
             assert profile.data['stats']['current_streak'] == 0
 
     def test_init_loads_existing_profile(self):
@@ -116,8 +117,8 @@ class TestUserProfileRecordTask:
             # Assert
             assert profile.data['stats']['current_streak'] == 1
 
-    def test_record_delete_decrements_total(self):
-        """测试：删除任务应减少总数"""
+    def test_record_delete_increments_deleted_count(self):
+        """测试：删除任务应增加删除计数（VERSION=3 行为）"""
         with tempfile.TemporaryDirectory() as tmpdir:
             path = Path(tmpdir) / "profile.json"
             profile = UserProfile(str(path))
@@ -127,8 +128,9 @@ class TestUserProfileRecordTask:
             # Act
             profile.record_task(todo, 'delete')
 
-            # Assert
-            assert profile.data['stats']['total_tasks'] == 0
+            # Assert (VERSION = 3: total_tasks 不减少，deleted_tasks 增加)
+            assert profile.data['stats']['total_tasks'] == 1
+            assert profile.data['stats']['deleted_tasks'] == 1
 
 
 class TestUserProfileSizeLimit:
