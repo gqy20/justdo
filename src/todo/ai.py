@@ -14,7 +14,7 @@ class AIConfig:
     """AI 配置"""
     api_key: str
     model: str = "gpt-4o-mini"
-    max_tokens: int = 100
+    max_tokens: int = 300
     temperature: float = 0.7
 
 
@@ -22,11 +22,34 @@ class AIHandler:
     """OpenAI 处理器"""
 
     # 提示词模板
-    PROMPT_ENHANCE = "优化这个 Todo 任务描述，保持简洁有力：{text}"
-    PROMPT_SUGGEST = """根据以下待办任务列表，建议下一步应该做什么：
+    PROMPT_ENHANCE = """你是任务描述优化专家。将模糊的任务描述转化为具体、可执行的行动。
+
+需要优化的情况：
+- 太模糊：看书、学习、运动 → 阅读第1章、学习Python基础、晨跑3公里
+- 缺少动词：报告、会议 → 撰写报告、参加评审会议
+- 没有具体内容：代码、文档 → 修复登录bug、更新API文档
+
+优化原则：
+1. 添加具体的行动动词（撰写、阅读、完成、修复）
+2. 明确具体的内容或数量
+3. 保持简洁（5-12字）
+4. 总是尝试改进，除非原文已经很完美
+
+原文：{text}
+
+优化后的描述（直接输出，不要解释）："""
+    PROMPT_SUGGEST = """根据待办任务列表，分析并建议下一步做哪个任务。
+
+任务列表：
 {todos}
 
-考虑优先级、拖延时间和任务复杂度。"""
+要求：
+1. 只建议一个任务
+2. 分析理由（100-200字）
+3. 从优先级、紧急程度、心理阻力三个维度分析
+4. 输出格式：💡 建议优先完成 [任务ID]
+
+直接输出建议："""
 
     def __init__(self, config: Optional[AIConfig] = None):
         if config is None:
@@ -38,7 +61,13 @@ class AIHandler:
             raise ValueError("OPENAI_API_KEY 环境变量未设置")
 
         self.config = config
-        self.client = OpenAI(api_key=config.api_key)
+        # 支持 OPENAI_BASE_URL 环境变量（如智谱 AI）
+        base_url = os.getenv("OPENAI_BASE_URL")
+        self.client = OpenAI(api_key=config.api_key, base_url=base_url)
+
+    def _should_disable_thinking(self) -> bool:
+        """判断是否需要禁用思考模式（GLM-4.x 系列）"""
+        return self.config.model.startswith("glm-4")
 
     def enhance_input(self, text: str) -> str:
         """AI 优化任务描述
@@ -47,17 +76,25 @@ class AIHandler:
             text: 原始任务文本
 
         Returns:
-            优化后的任务描述
+            优化后的任务描述（如果 AI 返回空则返回原始文本）
         """
-        response = self.client.chat.completions.create(
-            model=self.config.model,
-            messages=[
+        # 构建请求参数
+        params = {
+            "model": self.config.model,
+            "messages": [
                 {"role": "user", "content": self.PROMPT_ENHANCE.format(text=text)}
             ],
-            max_tokens=self.config.max_tokens,
-            temperature=self.config.temperature,
-        )
-        return response.choices[0].message.content.strip()
+            "max_tokens": self.config.max_tokens,
+            "temperature": self.config.temperature,
+        }
+        # GLM-4.x 需要禁用思考模式以加快速度
+        if self._should_disable_thinking():
+            params["extra_body"] = {"thinking": {"type": "disabled"}}
+
+        response = self.client.chat.completions.create(**params)
+        enhanced = response.choices[0].message.content.strip()
+        # 回退机制：如果 AI 返回空字符串，使用原始文本
+        return enhanced if enhanced else text
 
     def suggest_next(self, todos: List) -> str:
         """AI 建议下一步
@@ -80,14 +117,20 @@ class AIHandler:
             for t in incomplete_todos
         ])
 
-        response = self.client.chat.completions.create(
-            model=self.config.model,
-            messages=[
+        # 构建请求参数
+        params = {
+            "model": self.config.model,
+            "messages": [
                 {"role": "user", "content": self.PROMPT_SUGGEST.format(todos=todos_text)}
             ],
-            max_tokens=200,
-            temperature=0.7,
-        )
+            "max_tokens": self.config.max_tokens,
+            "temperature": 0.7,
+        }
+        # GLM-4.x 需要禁用思考模式以加快速度
+        if self._should_disable_thinking():
+            params["extra_body"] = {"thinking": {"type": "disabled"}}
+
+        response = self.client.chat.completions.create(**params)
         return response.choices[0].message.content.strip()
 
     def chat(self, user_input: str, todos: List) -> str:
@@ -113,15 +156,21 @@ class AIHandler:
 
 回答要简洁、有同理心、实用。"""
 
-        response = self.client.chat.completions.create(
-            model=self.config.model,
-            messages=[
+        # 构建请求参数
+        params = {
+            "model": self.config.model,
+            "messages": [
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_input}
             ],
-            max_tokens=300,
-            temperature=0.8,
-        )
+            "max_tokens": 300,
+            "temperature": 0.8,
+        }
+        # GLM-4.x 需要禁用思考模式以加快速度
+        if self._should_disable_thinking():
+            params["extra_body"] = {"thinking": {"type": "disabled"}}
+
+        response = self.client.chat.completions.create(**params)
         return response.choices[0].message.content.strip()
 
 

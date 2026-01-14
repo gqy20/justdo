@@ -33,7 +33,7 @@ class TestAIConfig:
 
         # Assert
         assert config.model == "gpt-4o-mini"
-        assert config.max_tokens == 100
+        assert config.max_tokens == 300
         assert config.temperature == 0.7
 
 
@@ -41,6 +41,7 @@ class TestAIHandlerInit:
     """测试 AIHandler 初始化"""
 
     @patch('todo.ai.OpenAI')
+    @patch.dict('os.environ', {}, clear=True)
     def test_init_with_valid_config(self, mock_openai):
         """测试：有效配置应创建 AIHandler"""
         # Arrange
@@ -51,7 +52,7 @@ class TestAIHandlerInit:
 
         # Assert
         assert handler.config == config
-        mock_openai.assert_called_once_with(api_key="test-key")
+        mock_openai.assert_called_once_with(api_key="test-key", base_url=None)
 
     def test_init_without_api_key_raises_error(self):
         """测试：缺少 API key 应抛出 ValueError"""

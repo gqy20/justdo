@@ -159,7 +159,11 @@ def main():
                     ai = get_ai_handler()
                     original_text = text
                     text = ai.enhance_input(text)
-                    print(f"AI 优化: {original_text} → {text}")
+                    # 提供更清晰的反馈
+                    if text == original_text:
+                        print(f"✓ AI 已处理: {text} (原文已足够好)")
+                    else:
+                        print(f"✓ AI 优化: {original_text} → {text}")
                 except ImportError:
                     print("错误: AI 功能需要安装 openai 库：uv pip install openai", file=sys.stderr)
                     sys.exit(1)
