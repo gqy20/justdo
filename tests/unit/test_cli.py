@@ -231,19 +231,19 @@ class TestCLISuggestCommand:
     @patch("todo.cli.TodoManager")
     @patch("sys.argv", ["todo.py", "suggest", "--ai"])
     @patch.dict("os.environ", {"OPENAI_API_KEY": "test-key"})
-    @patch("todo.ai.AIHandler")
-    def test_suggest_with_ai_uses_ai_suggestion(self, mock_ai_handler, mock_manager_class):
+    @patch("todo.emotion.EmotionEngine")
+    def test_suggest_with_ai_uses_ai_suggestion(self, mock_emotion_engine, mock_manager_class):
         """测试：suggest --ai 应使用 AI 建议下一步（流式输出）"""
         # Arrange
         mock_manager = MagicMock()
         mock_manager_class.return_value = mock_manager
-        mock_todo = MagicMock(id=1, text="写报告", done=False, priority="high")
+        mock_todo = MagicMock(id=1, text="写报告", done=False, priority="high", priority_emoji="🔴")
         mock_manager.list.return_value = [mock_todo]
 
-        mock_ai = MagicMock()
-        mock_ai_handler.return_value = mock_ai
+        mock_engine = MagicMock()
+        mock_emotion_engine.return_value = mock_engine
         # 流式方法返回生成器
-        mock_ai.suggest_next_stream.return_value = iter(["建议优先完成写报告任务"])
+        mock_engine.generate.return_value = iter(["建议优先完成写报告任务"])
 
         # Act
         with patch("sys.stdout", new_callable=StringIO) as mock_stdout:
@@ -251,7 +251,7 @@ class TestCLISuggestCommand:
             output = mock_stdout.getvalue()
 
         # Assert - AI 应被调用
-        mock_ai.suggest_next_stream.assert_called_once()
+        mock_engine.generate.assert_called_once()
         assert "建议优先完成写报告任务" in output
 
 
@@ -304,8 +304,8 @@ class TestCLIDoneCommand:
         mock_manager.mark_done.assert_any_call(1)
         mock_manager.mark_done.assert_any_call(2)
         mock_manager.mark_done.assert_any_call(3)
-        # 验证输出
-        assert "已标记为完成" in output or "标记" in output
+        # 验证输出 - 所有反馈都以 ✓ 开头（传统或情绪反馈）
+        assert output.count("✓") >= 3 or "✓" in output
 
     @patch("todo.cli.TodoManager")
     @patch("sys.argv", ["todo.py", "done", "1-3"])

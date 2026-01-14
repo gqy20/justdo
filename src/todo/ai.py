@@ -8,6 +8,12 @@ from dataclasses import dataclass
 from typing import Optional, List
 from openai import OpenAI
 
+from .prompts import (
+    PROMPT_ENHANCE,
+    PROMPT_SUGGEST,
+    CHAT_SYSTEM_PROMPT,
+)
+
 
 @dataclass
 class AIConfig:
@@ -20,36 +26,6 @@ class AIConfig:
 
 class AIHandler:
     """OpenAI 处理器"""
-
-    # 提示词模板
-    PROMPT_ENHANCE = """你是任务描述优化专家。将模糊的任务描述转化为具体、可执行的行动。
-
-需要优化的情况：
-- 太模糊：看书、学习、运动 → 阅读第1章、学习Python基础、晨跑3公里
-- 缺少动词：报告、会议 → 撰写报告、参加评审会议
-- 没有具体内容：代码、文档 → 修复登录bug、更新API文档
-
-优化原则：
-1. 添加具体的行动动词（撰写、阅读、完成、修复）
-2. 明确具体的内容或数量
-3. 保持简洁（5-12字）
-4. 总是尝试改进，除非原文已经很完美
-
-原文：{text}
-
-优化后的描述（直接输出，不要解释）："""
-    PROMPT_SUGGEST = """根据待办任务列表，分析并建议下一步做哪个任务。
-
-任务列表：
-{todos}
-
-要求：
-1. 只建议一个任务
-2. 分析理由（100-200字）
-3. 从优先级、紧急程度、心理阻力三个维度分析
-4. 输出格式：💡 建议优先完成 [任务ID]
-
-直接输出建议："""
 
     def __init__(self, config: Optional[AIConfig] = None):
         if config is None:
@@ -82,7 +58,7 @@ class AIHandler:
         params = {
             "model": self.config.model,
             "messages": [
-                {"role": "user", "content": self.PROMPT_ENHANCE.format(text=text)}
+                {"role": "user", "content": PROMPT_ENHANCE.format(text=text)}
             ],
             "max_tokens": self.config.max_tokens,
             "temperature": self.config.temperature,
@@ -121,7 +97,7 @@ class AIHandler:
         params = {
             "model": self.config.model,
             "messages": [
-                {"role": "user", "content": self.PROMPT_SUGGEST.format(todos=todos_text)}
+                {"role": "user", "content": PROMPT_SUGGEST.format(todos=todos_text)}
             ],
             "max_tokens": self.config.max_tokens,
             "temperature": 0.7,
@@ -149,12 +125,8 @@ class AIHandler:
             for t in todos
         ])
 
-        system_prompt = f"""你是一个友善的 Todo 助手，帮助用户管理任务和克服拖延。
-
-当前任务列表：
-{todos_text}
-
-回答要简洁、有同理心、实用。"""
+        # 使用 prompts.py 中的系统提示词
+        system_prompt = CHAT_SYSTEM_PROMPT.format(todos=todos_text)
 
         # 构建请求参数
         params = {
@@ -199,7 +171,7 @@ class AIHandler:
         params = {
             "model": self.config.model,
             "messages": [
-                {"role": "user", "content": self.PROMPT_SUGGEST.format(todos=todos_text)}
+                {"role": "user", "content": PROMPT_SUGGEST.format(todos=todos_text)}
             ],
             "max_tokens": self.config.max_tokens,
             "temperature": 0.7,
@@ -229,12 +201,8 @@ class AIHandler:
             for t in todos
         ])
 
-        system_prompt = f"""你是一个友善的 Todo 助手，帮助用户管理任务和克服拖延。
-
-当前任务列表：
-{todos_text}
-
-回答要简洁、有同理心、实用。"""
+        # 使用 prompts.py 中的系统提示词
+        system_prompt = CHAT_SYSTEM_PROMPT.format(todos=todos_text)
 
         # 构建请求参数
         params = {

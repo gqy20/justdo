@@ -169,6 +169,10 @@ def main():
                 except ImportError:
                     print("错误: AI 功能需要安装 openai 库：uv pip install openai", file=sys.stderr)
                     sys.exit(1)
+                except Exception as e:
+                    print(f"错误: AI 优化失败 - {e}", file=sys.stderr)
+                    # 继续使用原始文本
+                    text = original_text
 
             # 数字转换为优先级字符串
             priority_map = {1: "high", 2: "medium", 3: "low"}
@@ -200,9 +204,81 @@ def main():
 
         elif args.command == "done":
             todo_ids = parse_ids(args.ids)
+            all_todos = manager.list()
+
+            # 先标记所有任务为完成
             for todo_id in todo_ids:
                 manager.mark_done(todo_id)
-                print(f"✓ 任务 [{todo_id}] 已标记为完成")
+
+            # 并行生成所有情绪反馈（当有多个任务时）
+            if os.getenv("OPENAI_API_KEY") and len(todo_ids) > 1:
+                try:
+                    import asyncio
+                    from .emotion import EmotionEngine, EMOTION_SCENARIOS
+                    from .ai import get_ai_handler
+
+                    # 准备所有任务的上下文
+                    contexts = []
+                    for todo_id in todo_ids:
+                        todo = next((t for t in all_todos if t.id == todo_id), None)
+                        completed_todos = [t for t in all_todos if t.done and t.id in todo_ids]
+                        remaining_count = len([t for t in all_todos if not t.done])
+
+                        # 格式化提示词
+                        prompt = EMOTION_SCENARIOS["task_completed"].prompt_template.format(
+                            task_text=todo.text if todo else "",
+                            task_priority=todo.priority if todo else "",
+                            today_completed=len(completed_todos),
+                            today_total=len(all_todos),
+                            remaining_count=remaining_count,
+                        )
+                        contexts.append(prompt)
+
+                    # 并行生成所有反馈
+                    ai = get_ai_handler()
+                    engine = EmotionEngine(ai.config)
+                    scenario = EMOTION_SCENARIOS["task_completed"]
+
+                    feedbacks = asyncio.run(
+                        engine.generate_parallel(
+                            contexts,
+                            max_tokens=scenario.max_tokens,
+                            temperature=scenario.temperature,
+                        )
+                    )
+
+                    # 打印所有反馈
+                    for todo_id, feedback in zip(todo_ids, feedbacks):
+                        print(f"✓ {feedback}")
+
+                except Exception as e:
+                    # 失败时回退到简单消息
+                    for todo_id in todo_ids:
+                        print(f"✓ 任务 [{todo_id}] 已标记为完成")
+            elif os.getenv("OPENAI_API_KEY"):
+                # 单个任务时使用原有逻辑
+                try:
+                    from .emotion import EMOTION_SCENARIOS, trigger_emotion
+                    for todo_id in todo_ids:
+                        todo = next((t for t in all_todos if t.id == todo_id), None)
+                        completed_todos = [t for t in all_todos if t.done and t.id in todo_ids]
+                        remaining_count = len([t for t in all_todos if not t.done])
+
+                        feedback = trigger_emotion(
+                            EMOTION_SCENARIOS["task_completed"],
+                            task_text=todo.text if todo else "",
+                            task_priority=todo.priority if todo else "",
+                            today_completed=len(completed_todos),
+                            today_total=len(all_todos),
+                            remaining_count=remaining_count,
+                        )
+                        print(f"✓ {feedback}")
+                except Exception:
+                    for todo_id in todo_ids:
+                        print(f"✓ 任务 [{todo_id}] 已标记为完成")
+            else:
+                for todo_id in todo_ids:
+                    print(f"✓ 任务 [{todo_id}] 已标记为完成")
 
         elif args.command == "delete":
             todo_ids = parse_ids(args.ids)
@@ -211,8 +287,25 @@ def main():
                 print(f"✓ 任务 [{todo_id}] 已删除")
 
         elif args.command == "clear":
+            todos_before = manager.list()
+            completed_count = len([t for t in todos_before if t.done])
             manager.clear()
-            print("✓ 已清除所有已完成任务")
+
+            todos_after = manager.list()
+            if not todos_after and os.getenv("OPENAI_API_KEY"):
+                try:
+                    from .emotion import EMOTION_SCENARIOS, trigger_emotion
+                    celebration = trigger_emotion(
+                        EMOTION_SCENARIOS["list_cleared"],
+                        completed_count=completed_count,
+                    )
+                    print(celebration)
+                except Exception:
+                    print("✓ 已清除所有已完成任务")
+            elif not todos_after:
+                print("✓ 已清除所有已完成任务")
+            else:
+                print("✓ 已清除所有已完成任务")
 
         elif args.command == "suggest":
             # 获取未完成任务
@@ -221,16 +314,32 @@ def main():
             if not todos:
                 print("✓ 所有任务已完成，干得好！🎉")
             elif args.ai:
-                # AI 智能建议（流式输出）
+                # AI 智能建议（流式输出，使用情绪价值引擎）
                 if not os.getenv("OPENAI_API_KEY"):
                     print("错误: --ai 需要 OPENAI_API_KEY 环境变量", file=sys.stderr)
                     sys.exit(1)
                 try:
-                    from .ai import get_ai_handler
-                    ai = get_ai_handler()
-                    print("💡 AI 建议: ", end="", flush=True)
-                    # 流式输出
-                    for chunk in ai.suggest_next_stream(todos):
+                    from .emotion import EMOTION_SCENARIOS, trigger_emotion
+
+                    # 格式化任务列表
+                    todos_text = "\n".join([
+                        f"- [{t.id}] {t.text} (优先级: {t.priority})"
+                        for t in todos
+                    ])
+
+                    # 统计信息
+                    incomplete_count = len(todos)
+                    high_priority_count = len([t for t in todos if t.priority == "high"])
+
+                    # 使用流式输出
+                    print("💡 ", end="", flush=True)
+                    for chunk in trigger_emotion(
+                        EMOTION_SCENARIOS["suggest"],
+                        incomplete_count=incomplete_count,
+                        high_priority_count=high_priority_count,
+                        today_completed=len([t for t in manager.list() if t.done]),
+                        tasks_list=todos_text,
+                    ):
                         print(chunk, end="", flush=True)
                     print()  # 换行
                 except ImportError:
