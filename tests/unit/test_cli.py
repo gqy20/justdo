@@ -114,6 +114,46 @@ class TestCLIListCommand:
         # Assert
         assert "暂无任务" in output or "empty" in output.lower()
 
+    @patch("todo.cli.TodoManager")
+    @patch("sys.argv", ["todo.py", "list", "--done"])
+    def test_list_with_done_filter(self, mock_manager_class):
+        """测试：list --done 只显示已完成的任务"""
+        # Arrange
+        mock_manager = MagicMock()
+        mock_manager_class.return_value = mock_manager
+        mock_todo1 = MagicMock(id=1, text="未完成", done=False)
+        mock_todo2 = MagicMock(id=2, text="已完成", done=True)
+        mock_manager.list.return_value = [mock_todo1, mock_todo2]
+
+        # Act
+        with patch("sys.stdout", new_callable=StringIO) as mock_stdout:
+            main()
+            output = mock_stdout.getvalue()
+
+        # Assert - 只显示已完成的任务
+        assert "已完成" in output
+        assert "未完成" not in output
+
+    @patch("todo.cli.TodoManager")
+    @patch("sys.argv", ["todo.py", "list", "--undone"])
+    def test_list_with_undone_filter(self, mock_manager_class):
+        """测试：list --undone 只显示未完成的任务"""
+        # Arrange
+        mock_manager = MagicMock()
+        mock_manager_class.return_value = mock_manager
+        mock_todo1 = MagicMock(id=1, text="未完成", done=False)
+        mock_todo2 = MagicMock(id=2, text="已完成", done=True)
+        mock_manager.list.return_value = [mock_todo1, mock_todo2]
+
+        # Act
+        with patch("sys.stdout", new_callable=StringIO) as mock_stdout:
+            main()
+            output = mock_stdout.getvalue()
+
+        # Assert - 只显示未完成的任务
+        assert "未完成" in output
+        assert "已完成" not in output
+
 
 class TestCLIDoneCommand:
     """测试 done 命令"""
@@ -145,6 +185,66 @@ class TestCLIDoneCommand:
         with pytest.raises(SystemExit):
             with patch("sys.stderr", new_callable=StringIO):
                 main()
+
+    @patch("todo.cli.TodoManager")
+    @patch("sys.argv", ["todo.py", "done", "1", "2", "3"])
+    def test_done_with_multiple_ids(self, mock_manager_class):
+        """测试：done 命令支持多个 ID"""
+        # Arrange
+        mock_manager = MagicMock()
+        mock_manager_class.return_value = mock_manager
+
+        # Act
+        with patch("sys.stdout", new_callable=StringIO) as mock_stdout:
+            main()
+            output = mock_stdout.getvalue()
+
+        # Assert - 应调用三次 mark_done
+        assert mock_manager.mark_done.call_count == 3
+        mock_manager.mark_done.assert_any_call(1)
+        mock_manager.mark_done.assert_any_call(2)
+        mock_manager.mark_done.assert_any_call(3)
+        # 验证输出
+        assert "已标记为完成" in output or "标记" in output
+
+    @patch("todo.cli.TodoManager")
+    @patch("sys.argv", ["todo.py", "done", "1-3"])
+    def test_done_with_id_range(self, mock_manager_class):
+        """测试：done 命令支持 ID 范围语法 1-3"""
+        # Arrange
+        mock_manager = MagicMock()
+        mock_manager_class.return_value = mock_manager
+
+        # Act
+        with patch("sys.stdout", new_callable=StringIO) as mock_stdout:
+            main()
+            output = mock_stdout.getvalue()
+
+        # Assert - 应展开为 1, 2, 3
+        assert mock_manager.mark_done.call_count == 3
+        mock_manager.mark_done.assert_any_call(1)
+        mock_manager.mark_done.assert_any_call(2)
+        mock_manager.mark_done.assert_any_call(3)
+
+    @patch("todo.cli.TodoManager")
+    @patch("sys.argv", ["todo.py", "done", "1", "3-5", "7"])
+    def test_done_with_mixed_ids_and_ranges(self, mock_manager_class):
+        """测试：done 命令支持混合 ID 和范围"""
+        # Arrange
+        mock_manager = MagicMock()
+        mock_manager_class.return_value = mock_manager
+
+        # Act
+        with patch("sys.stdout", new_callable=StringIO):
+            main()
+
+        # Assert - 1, 3, 4, 5, 7 共 5 个
+        assert mock_manager.mark_done.call_count == 5
+        mock_manager.mark_done.assert_any_call(1)
+        mock_manager.mark_done.assert_any_call(3)
+        mock_manager.mark_done.assert_any_call(4)
+        mock_manager.mark_done.assert_any_call(5)
+        mock_manager.mark_done.assert_any_call(7)
 
 
 class TestCLIDeleteCommand:
@@ -180,6 +280,64 @@ class TestCLIDeleteCommand:
                 main()
                 output = mock_stderr.getvalue()
                 assert "错误" in output
+
+    @patch("todo.cli.TodoManager")
+    @patch("sys.argv", ["todo.py", "delete", "1", "2", "3"])
+    def test_delete_with_multiple_ids(self, mock_manager_class):
+        """测试：delete 命令支持多个 ID"""
+        # Arrange
+        mock_manager = MagicMock()
+        mock_manager_class.return_value = mock_manager
+
+        # Act
+        with patch("sys.stdout", new_callable=StringIO) as mock_stdout:
+            main()
+            output = mock_stdout.getvalue()
+
+        # Assert - 应调用三次 delete
+        assert mock_manager.delete.call_count == 3
+        mock_manager.delete.assert_any_call(1)
+        mock_manager.delete.assert_any_call(2)
+        mock_manager.delete.assert_any_call(3)
+        # 验证输出
+        assert "已删除" in output or "删除" in output
+
+    @patch("todo.cli.TodoManager")
+    @patch("sys.argv", ["todo.py", "delete", "1-3"])
+    def test_delete_with_id_range(self, mock_manager_class):
+        """测试：delete 命令支持 ID 范围语法 1-3"""
+        # Arrange
+        mock_manager = MagicMock()
+        mock_manager_class.return_value = mock_manager
+
+        # Act
+        with patch("sys.stdout", new_callable=StringIO):
+            main()
+
+        # Assert - 应展开为 1, 2, 3
+        assert mock_manager.delete.call_count == 3
+        mock_manager.delete.assert_any_call(1)
+        mock_manager.delete.assert_any_call(2)
+        mock_manager.delete.assert_any_call(3)
+
+    @patch("todo.cli.TodoManager")
+    @patch("sys.argv", ["todo.py", "delete", "1", "3-5"])
+    def test_delete_with_mixed_ids_and_ranges(self, mock_manager_class):
+        """测试：delete 命令支持混合 ID 和范围"""
+        # Arrange
+        mock_manager = MagicMock()
+        mock_manager_class.return_value = mock_manager
+
+        # Act
+        with patch("sys.stdout", new_callable=StringIO):
+            main()
+
+        # Assert - 1, 3, 4, 5 共 4 个
+        assert mock_manager.delete.call_count == 4
+        mock_manager.delete.assert_any_call(1)
+        mock_manager.delete.assert_any_call(3)
+        mock_manager.delete.assert_any_call(4)
+        mock_manager.delete.assert_any_call(5)
 
 
 class TestCLIClearCommand:
