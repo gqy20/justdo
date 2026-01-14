@@ -73,6 +73,49 @@ class TestCLIAddCommand:
         # Assert
         mock_manager.add.assert_called_once_with("任务", priority="low")
 
+    @patch("todo.cli.TodoManager")
+    @patch("sys.argv", ["todo.py", "add", "写报告", "--ai"])
+    @patch.dict("os.environ", {"OPENAI_API_KEY": "test-key"})
+    @patch("todo.ai.AIHandler")
+    def test_add_with_ai_flag_enhances_input(self, mock_ai_handler, mock_manager_class):
+        """测试：add --ai 应使用 AI 优化任务描述"""
+        # Arrange
+        mock_manager = MagicMock()
+        mock_manager_class.return_value = mock_manager
+        mock_manager.add.return_value = MagicMock(id=1, text="写 2024 年度报告", priority_emoji="🔴")
+
+        mock_ai = MagicMock()
+        mock_ai_handler.return_value = mock_ai
+        mock_ai.enhance_input.return_value = "写 2024 年度报告"
+
+        # Act
+        with patch("sys.stdout", new_callable=StringIO) as mock_stdout:
+            main()
+            output = mock_stdout.getvalue()
+
+        # Assert - AI 应被调用优化输入
+        mock_ai.enhance_input.assert_called_once_with("写报告")
+        # manager.add 应使用优化后的文本
+        mock_manager.add.assert_called_once_with("写 2024 年度报告", priority="medium")
+        assert "AI 优化" in output or "已添加" in output
+
+    @patch("todo.cli.TodoManager")
+    @patch("sys.argv", ["todo.py", "add", "写报告", "--ai"])
+    @patch.dict("os.environ", {}, clear=True)
+    def test_add_with_ai_flag_missing_key_shows_error(self, mock_manager_class):
+        """测试：add --ai 但缺少 API key 应显示错误"""
+        # Arrange
+        mock_manager = MagicMock()
+        mock_manager_class.return_value = mock_manager
+
+        # Act & Assert
+        with pytest.raises(SystemExit):
+            with patch("sys.stderr", new_callable=StringIO) as mock_stderr:
+                main()
+                output = mock_stderr.getvalue()
+                # 应该显示关于 API key 的错误信息
+                assert "OPENAI_API_KEY" in output or "AI" in output
+
 
 class TestCLIListCommand:
     """测试 list 命令"""
@@ -153,6 +196,62 @@ class TestCLIListCommand:
         # Assert - 只显示未完成的任务
         assert "未完成" in output
         assert "已完成" not in output
+
+
+class TestCLISuggestCommand:
+    """测试 suggest 命令"""
+
+    @patch("todo.cli.TodoManager")
+    @patch("sys.argv", ["todo.py", "suggest"])
+    def test_suggest_shows_priority_order(self, mock_manager_class):
+        """测试：suggest 应按优先级排序显示任务"""
+        # Arrange
+        mock_manager = MagicMock()
+        mock_manager_class.return_value = mock_manager
+        mock_todo1 = MagicMock(id=1, text="高优先级", done=False, priority_weight=3, priority_emoji="🔴")
+        mock_todo2 = MagicMock(id=2, text="低优先级", done=False, priority_weight=1, priority_emoji="🟢")
+        mock_todo3 = MagicMock(id=3, text="中优先级", done=False, priority_weight=2, priority_emoji="🟡")
+        mock_manager.list.return_value = [mock_todo1, mock_todo2, mock_todo3]
+
+        # Act
+        with patch("sys.stdout", new_callable=StringIO) as mock_stdout:
+            main()
+            output = mock_stdout.getvalue()
+
+        # Assert
+        # 应按优先级排序：高(1,weight=3) → 中(3,weight=2) → 低(2,weight=1)
+        lines = [line for line in output.split('\n') if line.strip()]
+        # 找到包含各 ID 的行索引
+        line_1_idx = next(i for i, line in enumerate(lines) if "[1]" in line)
+        line_3_idx = next(i for i, line in enumerate(lines) if "[3]" in line)
+        line_2_idx = next(i for i, line in enumerate(lines) if "[2]" in line)
+        # 验证顺序：1 在 3 之前，3 在 2 之前
+        assert line_1_idx < line_3_idx < line_2_idx
+
+    @patch("todo.cli.TodoManager")
+    @patch("sys.argv", ["todo.py", "suggest", "--ai"])
+    @patch.dict("os.environ", {"OPENAI_API_KEY": "test-key"})
+    @patch("todo.ai.AIHandler")
+    def test_suggest_with_ai_uses_ai_suggestion(self, mock_ai_handler, mock_manager_class):
+        """测试：suggest --ai 应使用 AI 建议下一步"""
+        # Arrange
+        mock_manager = MagicMock()
+        mock_manager_class.return_value = mock_manager
+        mock_todo = MagicMock(id=1, text="写报告", done=False, priority="high")
+        mock_manager.list.return_value = [mock_todo]
+
+        mock_ai = MagicMock()
+        mock_ai_handler.return_value = mock_ai
+        mock_ai.suggest_next.return_value = "建议优先完成写报告任务"
+
+        # Act
+        with patch("sys.stdout", new_callable=StringIO) as mock_stdout:
+            main()
+            output = mock_stdout.getvalue()
+
+        # Assert - AI 应被调用
+        mock_ai.suggest_next.assert_called_once()
+        assert "建议优先完成写报告任务" in output
 
 
 class TestCLIDoneCommand:

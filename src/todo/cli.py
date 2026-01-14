@@ -4,6 +4,7 @@
 """
 
 import sys
+import os
 import argparse
 from .manager import TodoManager
 
@@ -55,6 +56,10 @@ def main():
         action="version",
         version="%(prog)s 0.1.1"
     )
+    parser.add_argument(
+        "--chat",
+        help="AI 对话模式"
+    )
     subparsers = parser.add_subparsers(dest="command", help="可用命令")
 
     # add 命令
@@ -66,6 +71,11 @@ def main():
         choices=[1, 2, 3],
         default=2,
         help="优先级: 1=高, 2=中, 3=低 (默认 2)"
+    )
+    add_parser.add_argument(
+        "--ai",
+        action="store_true",
+        help="使用 AI 优化任务描述（需 OPENAI_API_KEY 环境变量）"
     )
 
     # list 命令
@@ -98,7 +108,35 @@ def main():
     # clear 命令
     subparsers.add_parser("clear", help="清除所有已完成任务")
 
+    # suggest 命令
+    suggest_parser = subparsers.add_parser("suggest", help="建议下一步做什么")
+    suggest_parser.add_argument(
+        "--ai",
+        action="store_true",
+        help="使用 AI 智能建议（需 OPENAI_API_KEY 环境变量）"
+    )
+
     args = parser.parse_args()
+
+    # 处理 --chat 对话模式
+    if args.chat:
+        if not os.getenv("OPENAI_API_KEY"):
+            print("错误: --chat 需要 OPENAI_API_KEY 环境变量", file=sys.stderr)
+            sys.exit(1)
+        try:
+            from .ai import get_ai_handler
+            ai = get_ai_handler()
+            manager = TodoManager()
+            todos = manager.list()
+            response = ai.chat(args.chat, todos)
+            print(response)
+        except ImportError:
+            print("错误: AI 功能需要安装 openai 库：uv pip install openai", file=sys.stderr)
+            sys.exit(1)
+        except Exception as e:
+            print(f"AI 错误: {e}", file=sys.stderr)
+            sys.exit(1)
+        sys.exit(0)
 
     if not args.command:
         parser.print_help()
@@ -110,6 +148,22 @@ def main():
         if args.command == "add":
             # CLI 层处理空格
             text = args.text.strip()
+
+            # AI 优化任务描述
+            if args.ai:
+                if not os.getenv("OPENAI_API_KEY"):
+                    print("错误: --ai 需要 OPENAI_API_KEY 环境变量", file=sys.stderr)
+                    sys.exit(1)
+                try:
+                    from .ai import get_ai_handler
+                    ai = get_ai_handler()
+                    original_text = text
+                    text = ai.enhance_input(text)
+                    print(f"AI 优化: {original_text} → {text}")
+                except ImportError:
+                    print("错误: AI 功能需要安装 openai 库：uv pip install openai", file=sys.stderr)
+                    sys.exit(1)
+
             # 数字转换为优先级字符串
             priority_map = {1: "high", 2: "medium", 3: "low"}
             todo = manager.add(text, priority=priority_map[args.level])
@@ -153,6 +207,33 @@ def main():
         elif args.command == "clear":
             manager.clear()
             print("✓ 已清除所有已完成任务")
+
+        elif args.command == "suggest":
+            # 获取未完成任务
+            todos = [t for t in manager.list() if not t.done]
+
+            if not todos:
+                print("✓ 所有任务已完成，干得好！🎉")
+            elif args.ai:
+                # AI 智能建议
+                if not os.getenv("OPENAI_API_KEY"):
+                    print("错误: --ai 需要 OPENAI_API_KEY 环境变量", file=sys.stderr)
+                    sys.exit(1)
+                try:
+                    from .ai import get_ai_handler
+                    ai = get_ai_handler()
+                    suggestion = ai.suggest_next(todos)
+                    print(f"💡 AI 建议: {suggestion}")
+                except ImportError:
+                    print("错误: AI 功能需要安装 openai 库：uv pip install openai", file=sys.stderr)
+                    sys.exit(1)
+            else:
+                # 按优先级排序显示
+                sorted_todos = sorted(todos, key=lambda t: (-t.priority_weight, t.id))
+                print("📋 建议按优先级处理：")
+                for todo in sorted_todos:
+                    emoji = todo.priority_emoji
+                    print(f"  [{todo.id}] {emoji} {todo.text}")
 
     except ValueError as e:
         print(f"错误: {e}", file=sys.stderr)
