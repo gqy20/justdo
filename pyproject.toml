@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "justdo"
-version = "0.1.1"
+version = "0.1.2"
 description = "Just do it! - 一个简单的命令行待办事项工具"
 readme = "README.md"
 requires-python = ">=3.8"
