@@ -92,6 +92,26 @@ class TodoManager:
         todo.done = True
         self.save()
 
+    def toggle(self, todo_id: int) -> bool:
+        """切换任务完成状态
+
+        Args:
+            todo_id: 任务 ID
+
+        Returns:
+            新的完成状态 (True=已完成, False=未完成)
+
+        Raises:
+            ValueError: 任务不存在时
+        """
+        todo = self._find_todo(todo_id)
+        if todo is None:
+            raise ValueError(f"任务不存在: ID {todo_id}")
+
+        todo.done = not todo.done
+        self.save()
+        return todo.done
+
     def delete(self, todo_id: int) -> None:
         """删除任务
 

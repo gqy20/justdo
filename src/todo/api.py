@@ -4,11 +4,22 @@
 """
 
 import os
+from pathlib import Path
 from typing import List, Optional
 from fastapi import FastAPI, HTTPException, status
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
 from .manager import TodoManager
+
+
+# ============================================================================
+# 静态文件路径
+# ============================================================================
+
+STATIC_DIR = Path(__file__).parent / "static"
+STATIC_DIR.mkdir(exist_ok=True)
 
 
 # ============================================================================
@@ -27,6 +38,8 @@ class TodoResponse(BaseModel):
     text: str
     priority: str
     done: bool
+    feedback: Optional[str] = None  # AI 反馈（完成/添加时的鼓励）
+    original_text: Optional[str] = None  # AI 优化前的原始文本
 
 
 class ChatRequest(BaseModel):
@@ -62,6 +75,27 @@ app = FastAPI(
 
 # 默认端口配置
 DEFAULT_PORT = 8848
+
+
+# ============================================================================
+# 静态文件和首页
+# ============================================================================
+
+@app.get("/")
+async def root():
+    """首页 - 返回单页应用"""
+    # 动态查找 static 目录
+    import todo.api
+    static_dir = Path(todo.api.__file__).parent / "static"
+    index_file = static_dir / "index.html"
+
+    if index_file.exists():
+        return FileResponse(str(index_file))
+    return {"message": "JustDo API - 访问 /docs 查看 API 文档", "static_dir": str(static_dir)}
+
+
+# 挂载静态文件（需要在路由之后，否则会覆盖 / 路由）
+app.mount("/static", StaticFiles(directory=str(Path(__file__).parent / "static")), name="static")
 
 
 def get_manager() -> TodoManager:
@@ -110,19 +144,57 @@ def list_todos(done: Optional[bool] = None):
 
 
 @app.post("/api/todos", response_model=TodoResponse, status_code=status.HTTP_201_CREATED)
-def create_todo(todo: TodoCreate):
+def create_todo(todo: TodoCreate, ai: bool = False):
     """创建新任务
 
     Args:
         todo: 任务创建请求
+        ai: 是否使用 AI 优化任务描述
 
     Returns:
         创建的任务
     """
     manager = get_manager()
     try:
-        result = manager.add(todo.text, todo.priority)
-        return todo_to_response(result)
+        text = todo.text
+        original_text = None
+
+        # AI 优化任务描述
+        if ai and os.getenv("OPENAI_API_KEY"):
+            try:
+                from .ai import get_ai_handler
+                ai_handler = get_ai_handler()
+                original_text = text
+                text = ai_handler.enhance_input(text)
+            except ImportError:
+                pass  # AI 功能不可用时静默回退
+            except Exception:
+                pass  # AI 失败时使用原始文本
+
+        result = manager.add(text, todo.priority)
+        response = todo_to_response(result)
+
+        # 设置原始文本（如果经过 AI 优化）
+        if original_text and original_text != text:
+            response.original_text = original_text
+
+        # 生成添加任务的鼓励反馈（如果配置了 OPENAI_API_KEY）
+        if os.getenv("OPENAI_API_KEY"):
+            try:
+                from .emotion import EMOTION_SCENARIOS, trigger_emotion
+                all_todos = manager.list()
+                feedback = trigger_emotion(
+                    EMOTION_SCENARIOS["task_added"],
+                    task_text=result.text,
+                    task_priority=result.priority,
+                    total_count=len(all_todos),
+                    incomplete_count=len([t for t in all_todos if not t.done]),
+                )
+                response.feedback = feedback
+            except Exception:
+                pass  # AI 失败时静默回退
+
+        return response
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -144,7 +216,67 @@ def mark_done(todo_id: int):
         todos = manager.list()
         todo = next((t for t in todos if t.id == todo_id), None)
         if todo:
-            return todo_to_response(todo)
+            response = todo_to_response(todo)
+
+            # 生成 AI 反馈（如果配置了 OPENAI_API_KEY）
+            if os.getenv("OPENAI_API_KEY"):
+                try:
+                    from .emotion import EMOTION_SCENARIOS, trigger_emotion
+                    feedback = trigger_emotion(
+                        EMOTION_SCENARIOS["task_completed"],
+                        task_text=todo.text,
+                        task_priority=todo.priority,
+                        today_completed=len([t for t in todos if t.done]),
+                        today_total=len(todos),
+                        remaining_count=len([t for t in todos if not t.done]),
+                    )
+                    response.feedback = feedback
+                except Exception:
+                    pass  # AI 失败时静默回退
+
+            return response
+    except ValueError as e:
+        if "不存在" in str(e):
+            raise HTTPException(status_code=404, detail="Task not found")
+        raise HTTPException(status_code=400, detail=str(e))
+    raise HTTPException(status_code=404, detail="Task not found")
+
+
+@app.post("/api/todos/{todo_id}/toggle", response_model=TodoResponse)
+def toggle_todo(todo_id: int):
+    """切换任务完成状态
+
+    Args:
+        todo_id: 任务 ID
+
+    Returns:
+        更新后的任务，包含 AI 反馈
+    """
+    manager = get_manager()
+    try:
+        new_done_status = manager.toggle(todo_id)
+        todos = manager.list()
+        todo = next((t for t in todos if t.id == todo_id), None)
+        if todo:
+            response = todo_to_response(todo)
+
+            # 只在标记为完成时生成 AI 反馈（如果配置了 OPENAI_API_KEY）
+            if new_done_status and os.getenv("OPENAI_API_KEY"):
+                try:
+                    from .emotion import EMOTION_SCENARIOS, trigger_emotion
+                    feedback = trigger_emotion(
+                        EMOTION_SCENARIOS["task_completed"],
+                        task_text=todo.text,
+                        task_priority=todo.priority,
+                        today_completed=len([t for t in todos if t.done]),
+                        today_total=len(todos),
+                        remaining_count=len([t for t in todos if not t.done]),
+                    )
+                    response.feedback = feedback
+                except Exception:
+                    pass  # AI 失败时静默回退
+
+            return response
     except ValueError as e:
         if "不存在" in str(e):
             raise HTTPException(status_code=404, detail="Task not found")
@@ -229,3 +361,21 @@ def chat(request: ChatRequest):
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# ============================================================================
+# 命令行入口
+# ============================================================================
+
+def main():
+    """启动 Web 服务器
+
+    运行 'jd-web' 命令时调用
+    """
+    import uvicorn
+    uvicorn.run(
+        "todo.api:app",
+        host="0.0.0.0",
+        port=DEFAULT_PORT,
+        log_level="info"
+    )

@@ -1,0 +1,1013 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JustDo - 待办事项</title>
+    <style>
+        /* ============================================================================
+         * 日式和风极简设计 - 设计系统
+         * ============================================================================ */
+        :root {
+            /* 缓动曲线 - 柔和自然 */
+            --ease-out: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            --ease-in-out: cubic-bezier(0.645, 0.045, 0.355, 1);
+
+            /* 日式配色 - 纸色、墨色、靛蓝 */
+            /* 背景 */
+            --bg-paper: #fafaf9;      /* 和纸色 */
+            --bg-card: #ffffff;       /* 纯白 */
+            --bg-subtle: #f5f5f4;     /* 浅灰 */
+
+            /* 文字 */
+            --text-ink: #1c1917;      /* 墨色 */
+            --text-secondary: #57534e; /* 次墨 */
+            --text-muted: #a8a29e;    /* 淡墨 */
+
+            /* 边框 */
+            --border-faint: #e7e5e4;  /* 极淡边框 */
+            --border-subtle: #d6d3d1;  /* 细边框 */
+
+            /* 强调色 - 靛蓝 */
+            --accent: #3730a3;        /* 靛蓝 */
+            --accent-hover: #312e81;  /* 深靛蓝 */
+            --accent-subtle: #eef2ff; /* 浅靛蓝 */
+
+            /* 语义色 */
+            --color-high: #b91c1c;    /* 朱红 - 高优先级 */
+            --color-medium: #b45309;  /* 琥珀 - 中优先级 */
+            --color-low: #047857;     /* 青绿 - 低优先级 */
+
+            /* 阴影 - 单层极浅 */
+            --shadow-soft: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
+            --shadow-medium: 0 4px 6px rgba(0, 0, 0, 0.04), 0 2px 4px rgba(0, 0, 0, 0.02);
+
+            /* 焦点光环 */
+            --focus-ring: 0 0 0 3px rgba(55, 48, 163, 0.12);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            /* 英文优先：Inter/SF Pro → 中文：苹方/思源黑体 → 后备 */
+            font-family: "Inter", -apple-system, BlinkMacSystemFont, "SF Pro",
+                         "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei",
+                         "Source Han Sans CN", "Noto Sans CJK SC", sans-serif;
+            background: var(--bg-paper);
+            min-height: 100vh;
+            padding: 60px 24px;
+            color: var(--text-ink);
+            line-height: 1.7;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            font-feature-settings: "kern" 1;
+        }
+
+        .container {
+            max-width: 560px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: var(--text-ink);
+            margin-bottom: 56px;
+            margin-top: 16px;
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            margin-bottom: 8px;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            line-height: 1.3;
+        }
+
+        .header p {
+            color: var(--text-secondary);
+            font-size: 0.9375rem;
+            font-weight: 400;
+            letter-spacing: 0.02em;
+        }
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-faint);
+            border-radius: 16px;
+            padding: 32px;
+            margin-bottom: 20px;
+            box-shadow: var(--shadow-soft);
+        }
+
+        .add-form {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .add-form input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 1px solid var(--border-faint);
+            border-radius: 12px;
+            font-size: 14px;
+            outline: none;
+            transition: all 0.2s var(--ease-out);
+            background: var(--bg-subtle);
+            color: var(--text-ink);
+        }
+
+        .add-form input:focus {
+            border-color: var(--accent);
+            background: var(--bg-card);
+            box-shadow: var(--focus-ring);
+        }
+
+        .add-form input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .add-form select {
+            padding: 12px 14px;
+            border: 1px solid var(--border-faint);
+            border-radius: 12px;
+            background: var(--bg-subtle);
+            cursor: pointer;
+            min-width: 80px;
+            transition: all 0.2s var(--ease-out);
+            color: var(--text-ink);
+            font-size: 14px;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath fill='%23a8a29e' d='M5 7L1 3h8z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 10px center;
+            padding-right: 28px;
+        }
+
+        .add-form select:focus {
+            outline: none;
+            border-color: var(--accent);
+            background: var(--bg-card);
+            box-shadow: var(--focus-ring);
+        }
+
+        .add-form button {
+            padding: 12px 24px;
+            background: var(--accent);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s var(--ease-out);
+            white-space: nowrap;
+        }
+
+        .add-form button:hover {
+            background: var(--accent-hover);
+        }
+
+        .add-form button:active {
+            transform: scale(0.98);
+        }
+
+        .ai-toggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            white-space: nowrap;
+            padding: 8px 14px;
+            background: var(--bg-subtle);
+            border-radius: 12px;
+            transition: all 0.2s var(--ease-out);
+            cursor: pointer;
+            border: 1px solid var(--border-faint);
+            color: var(--text-secondary);
+        }
+
+        .ai-toggle:hover {
+            background: var(--bg-card);
+            border-color: var(--border-subtle);
+        }
+
+        .ai-toggle:has(input:checked) {
+            background: var(--accent-subtle);
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .ai-toggle input {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+            accent-color: var(--accent);
+        }
+
+        .ai-toggle label {
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .filters {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 24px;
+        }
+
+        .filter-btn {
+            padding: 8px 16px;
+            border: 1px solid var(--border-faint);
+            background: var(--bg-card);
+            border-radius: 20px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s var(--ease-out);
+            color: var(--text-secondary);
+            font-weight: 400;
+        }
+
+        .filter-btn:hover {
+            border-color: var(--border-subtle);
+            color: var(--text-ink);
+        }
+
+        .filter-btn.active {
+            background: var(--accent);
+            color: white;
+            border-color: var(--accent);
+        }
+
+        .todo-list {
+            list-style: none;
+        }
+
+        .todo-item {
+            display: flex;
+            align-items: center;
+            padding: 16px;
+            border-bottom: 1px solid var(--border-faint);
+            transition: background 0.15s var(--ease-out);
+        }
+
+        .todo-item:last-child {
+            border-bottom: none;
+        }
+
+        .todo-item:hover {
+            background: var(--bg-subtle);
+        }
+
+        .todo-item.done .todo-text {
+            text-decoration: line-through;
+            color: var(--text-muted);
+        }
+
+        .todo-checkbox {
+            width: 20px;
+            height: 20px;
+            margin-right: 12px;
+            cursor: pointer;
+            accent-color: var(--accent);
+        }
+
+        .todo-content {
+            flex: 1;
+        }
+
+        .todo-text {
+            font-size: 14px;
+            margin-bottom: 4px;
+            line-height: 1.6;
+            color: var(--text-ink);
+        }
+
+        .todo-meta {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .priority-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        .priority-high { background: #fef2f2; color: var(--color-high); }
+        .priority-medium { background: #fef3c7; color: var(--color-medium); }
+        .priority-low { background: #f0fdf4; color: var(--color-low); }
+
+        .todo-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .action-btn {
+            padding: 6px 12px;
+            border: 1px solid var(--border-faint);
+            background: var(--bg-card);
+            border-radius: 8px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.15s var(--ease-out);
+            color: var(--text-secondary);
+        }
+
+        .action-btn:hover {
+            background: var(--bg-subtle);
+            border-color: var(--border-subtle);
+            color: var(--text-ink);
+        }
+
+        .action-btn.delete:hover {
+            background: #fef2f2;
+            border-color: #fecaca;
+            color: var(--color-high);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 48px 20px;
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+
+        /* ============================================================================
+         * AI 浮动按钮
+         * ============================================================================ */
+        .ai-fab {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: var(--accent);
+            color: white;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: var(--shadow-medium);
+            transition: all 0.3s var(--ease-out);
+            z-index: 900;
+        }
+
+        .ai-fab:hover {
+            background: var(--accent-hover);
+            transform: scale(1.05);
+            box-shadow: 0 8px 20px rgba(55, 48, 163, 0.3);
+        }
+
+        .ai-fab:active {
+            transform: scale(0.95);
+        }
+
+        .ai-fab svg {
+            width: 24px;
+            height: 24px;
+        }
+
+        /* ============================================================================
+         * AI 模态框
+         * ============================================================================ */
+        .ai-modal {
+            position: fixed;
+            inset: 0;
+            z-index: 1000;
+            display: none;
+        }
+
+        .ai-modal.show {
+            display: block;
+        }
+
+        .ai-modal-backdrop {
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            animation: fadeIn 0.2s var(--ease-out);
+        }
+
+        .ai-modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 90%;
+            max-width: 500px;
+            max-height: 80vh;
+            background: var(--bg-card);
+            border-radius: 16px;
+            box-shadow: var(--shadow-medium);
+            display: flex;
+            flex-direction: column;
+            animation: modalSlideIn 0.3s var(--ease-out);
+        }
+
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: translate(-50%, -45%);
+            }
+            to {
+                opacity: 1;
+                transform: translate(-50%, -50%);
+            }
+        }
+
+        .ai-modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border-faint);
+        }
+
+        .ai-modal-header h3 {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-ink);
+        }
+
+        .ai-modal-close {
+            width: 32px;
+            height: 32px;
+            border: none;
+            background: var(--bg-subtle);
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-secondary);
+            transition: all 0.15s var(--ease-out);
+        }
+
+        .ai-modal-close:hover {
+            background: var(--border-faint);
+            color: var(--text-ink);
+        }
+
+        .ai-modal-body {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .chat-message {
+            display: flex;
+            flex-direction: column;
+            max-width: 85%;
+        }
+
+        .chat-message.ai-message {
+            align-self: flex-start;
+        }
+
+        .chat-message.user-message {
+            align-self: flex-end;
+        }
+
+        .message-content {
+            padding: 12px 16px;
+            border-radius: 12px;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .ai-message .message-content {
+            background: var(--bg-subtle);
+            color: var(--text-ink);
+            border-bottom-left-radius: 4px;
+        }
+
+        .user-message .message-content {
+            background: var(--accent);
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        .chat-input-modal {
+            display: flex;
+            gap: 10px;
+            padding: 16px 24px;
+            border-top: 1px solid var(--border-faint);
+        }
+
+        .chat-input-modal input {
+            flex: 1;
+            padding: 10px 14px;
+            border: 1px solid var(--border-faint);
+            border-radius: 12px;
+            font-size: 14px;
+            outline: none;
+            background: var(--bg-subtle);
+            transition: all 0.2s var(--ease-out);
+            color: var(--text-ink);
+        }
+
+        .chat-input-modal input:focus {
+            border-color: var(--accent);
+            background: var(--bg-card);
+            box-shadow: var(--focus-ring);
+        }
+
+        .chat-input-modal button {
+            width: 42px;
+            height: 42px;
+            padding: 0;
+            border: none;
+            background: var(--accent);
+            color: white;
+            border-radius: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s var(--ease-out);
+        }
+
+        .chat-input-modal button:hover {
+            background: var(--accent-hover);
+        }
+
+        .chat-input-modal button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .chat-input-modal button svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .loading {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+
+        /* Toast 通知 */
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            padding: 12px 18px;
+            background: var(--text-ink);
+            color: white;
+            border-radius: 12px;
+            font-size: 13px;
+            box-shadow: var(--shadow-medium);
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s var(--ease-out);
+            z-index: 1000;
+            max-width: 280px;
+            line-height: 1.5;
+        }
+
+        .toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .toast.success {
+            background: var(--color-low);
+        }
+
+        .toast.error {
+            background: var(--color-high);
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 32px 16px;
+            }
+
+            .header {
+                margin-bottom: 40px;
+                margin-top: 8px;
+            }
+
+            .header h1 {
+                font-size: 1.75rem;
+            }
+
+            .card {
+                padding: 24px;
+                margin-bottom: 16px;
+                border-radius: 14px;
+            }
+
+            .add-form {
+                flex-wrap: wrap;
+                gap: 8px;
+            }
+
+            .add-form input {
+                flex: 1 1 100%;
+                min-width: 0;
+                padding: 11px 14px;
+            }
+
+            /* 移动端第二行：优先级 | 按钮 */
+            .add-form > *:not(input) {
+                flex: 1;
+            }
+
+            .add-form select {
+                min-width: 0;
+                flex: 2;
+                padding: 11px 12px;
+                font-size: 13px;
+            }
+
+            .add-form button {
+                flex: 1;
+                padding: 11px 16px;
+                font-size: 13px;
+            }
+
+            /* 浮动按钮移动端调整 */
+            .ai-fab {
+                bottom: 20px;
+                right: 20px;
+                width: 52px;
+                height: 52px;
+            }
+
+            .ai-modal-content {
+                width: 95%;
+                max-height: 85vh;
+            }
+
+            .todo-item {
+                flex-wrap: wrap;
+                padding: 14px 10px;
+            }
+
+            .todo-actions {
+                width: 100%;
+                margin-top: 10px;
+                justify-content: flex-end;
+            }
+
+            .toast {
+                left: 16px;
+                right: 16px;
+                bottom: 16px;
+                max-width: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>JustDo</h1>
+            <p>简单的待办事项管理</p>
+        </div>
+
+        <div class="card">
+            <form class="add-form" id="addForm">
+                <input type="text" id="todoInput" placeholder="添加新任务..." required>
+                <select id="prioritySelect">
+                    <option value="high">高</option>
+                    <option value="medium" selected>中</option>
+                    <option value="low">低</option>
+                </select>
+                <button type="submit">添加</button>
+            </form>
+        </div>
+
+        <div class="card">
+            <div class="filters">
+                <button class="filter-btn active" data-filter="all">全部</button>
+                <button class="filter-btn" data-filter="undone">未完成</button>
+                <button class="filter-btn" data-filter="done">已完成</button>
+            </div>
+            <ul class="todo-list" id="todoList">
+                <li class="empty-state">加载中...</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- AI 浮动按钮 -->
+    <button class="ai-fab" id="aiFab" title="AI 助手">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/>
+        </svg>
+    </button>
+
+    <!-- AI 助手模态框 -->
+    <div class="ai-modal" id="aiModal">
+        <div class="ai-modal-backdrop" id="aiModalBackdrop"></div>
+        <div class="ai-modal-content">
+            <div class="ai-modal-header">
+                <h3>AI 助手</h3>
+                <button class="ai-modal-close" id="aiModalClose">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M4 4L16 16M4 16L16 4"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="ai-modal-body">
+                <div class="chat-messages" id="chatMessages">
+                    <div class="chat-message ai-message">
+                        <div class="message-content">你好！我是你的 AI 助手，可以帮你规划任务、提供建议。有什么我可以帮助的吗？</div>
+                    </div>
+                </div>
+                <form class="chat-input-modal" id="chatForm">
+                    <input type="text" id="chatInput" placeholder="问我接下来应该做什么..." autocomplete="off">
+                    <button type="submit">
+                        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M1 9L17 9M9 1L17 9L9 17"/>
+                        </svg>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        // API 基础 URL
+        const API_BASE = window.location.origin + '/api';
+
+        // 当前过滤状态
+        let currentFilter = 'all';
+
+        // 加载任务列表
+        async function loadTodos() {
+            try {
+                const url = currentFilter === 'all'
+                    ? `${API_BASE}/todos`
+                    : `${API_BASE}/todos?done=${currentFilter === 'done'}`;
+
+                const response = await fetch(url);
+                const todos = await response.json();
+                renderTodos(todos);
+            } catch (error) {
+                console.error('加载失败:', error);
+            }
+        }
+
+        // Toast 通知
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = `toast show ${type}`;
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
+        // 渲染任务列表
+        function renderTodos(todos) {
+            const list = document.getElementById('todoList');
+
+            if (todos.length === 0) {
+                list.innerHTML = '<li class="empty-state">暂无任务</li>';
+                return;
+            }
+
+            list.innerHTML = todos.map(todo => `
+                <li class="todo-item ${todo.done ? 'done' : ''}">
+                    <input type="checkbox" class="todo-checkbox"
+                        ${todo.done ? 'checked' : ''}
+                        onchange="toggleTodo(${todo.id})">
+                    <div class="todo-content">
+                        <div class="todo-text">${escapeHtml(todo.text)}</div>
+                        <div class="todo-meta">
+                            <span class="priority-badge priority-${todo.priority}">
+                                ${getPriorityText(todo.priority)}
+                            </span>
+                            <span> #${todo.id}</span>
+                        </div>
+                    </div>
+                    <div class="todo-actions">
+                        <button class="action-btn" onclick="toggleTodo(${todo.id})">
+                            ${todo.done ? '撤销' : '完成'}
+                        </button>
+                        <button class="action-btn delete" onclick="deleteTodo(${todo.id})">删除</button>
+                    </div>
+                </li>
+            `).join('');
+        }
+
+        // 添加任务
+        async function addTodo(text, priority, ai = false) {
+            try {
+                const url = ai ? `${API_BASE}/todos?ai=true` : `${API_BASE}/todos`;
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text, priority })
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    document.getElementById('todoInput').value = '';
+                    loadTodos();
+
+                    // 显示反馈
+                    if (data.feedback) {
+                        showToast(data.feedback, 'success');
+                    } else if (ai && data.original_text && data.original_text !== data.text) {
+                        // AI 优化后的反馈
+                        showToast(`✨ ${data.original_text} → ${data.text}`, 'success');
+                    } else {
+                        showToast('任务已添加', 'success');
+                    }
+                } else {
+                    showToast('添加失败', 'error');
+                }
+            } catch (error) {
+                console.error('添加失败:', error);
+                showToast('网络错误', 'error');
+            }
+        }
+
+        // 切换完成状态
+        async function toggleTodo(id) {
+            try {
+                const response = await fetch(`${API_BASE}/todos/${id}/toggle`, {
+                    method: 'POST'
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    loadTodos();
+
+                    // 显示 AI 反馈（仅在完成时）
+                    if (data.feedback) {
+                        showToast(data.feedback, 'success');
+                    } else {
+                        showToast(data.done ? '任务已完成' : '任务已撤销', 'success');
+                    }
+                } else {
+                    showToast('操作失败，请重试', 'error');
+                }
+            } catch (error) {
+                console.error('操作失败:', error);
+                showToast('网络错误', 'error');
+            }
+        }
+
+        // 删除任务
+        async function deleteTodo(id) {
+            if (!confirm('确定删除此任务？')) return;
+
+            try {
+                const response = await fetch(`${API_BASE}/todos/${id}`, {
+                    method: 'DELETE'
+                });
+                if (response.ok) {
+                    loadTodos();
+                    showToast('任务已删除');
+                } else {
+                    showToast('删除失败', 'error');
+                }
+            } catch (error) {
+                console.error('删除失败:', error);
+                showToast('网络错误', 'error');
+            }
+        }
+
+        // AI 对话
+        async function askAI(message) {
+            const chatMessages = document.getElementById('chatMessages');
+
+            // 添加用户消息
+            const userMsgDiv = document.createElement('div');
+            userMsgDiv.className = 'chat-message user-message';
+            userMsgDiv.innerHTML = `<div class="message-content">${escapeHtml(message)}</div>`;
+            chatMessages.appendChild(userMsgDiv);
+
+            // 滚动到底部
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+
+            // 添加 AI 思考中消息
+            const aiMsgDiv = document.createElement('div');
+            aiMsgDiv.className = 'chat-message ai-message';
+            aiMsgDiv.innerHTML = `<div class="message-content">思考中...</div>`;
+            chatMessages.appendChild(aiMsgDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+
+            try {
+                const response = await fetch(`${API_BASE}/chat`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message })
+                });
+                const data = await response.json();
+                aiMsgDiv.querySelector('.message-content').textContent = data.response;
+            } catch (error) {
+                aiMsgDiv.querySelector('.message-content').textContent = 'AI 暂不可用，请检查 OPENAI_API_KEY 配置';
+            }
+
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // ============================================================================
+        // AI 模态框交互
+        // ============================================================================
+        const aiModal = document.getElementById('aiModal');
+        const aiFab = document.getElementById('aiFab');
+        const aiModalClose = document.getElementById('aiModalClose');
+        const aiModalBackdrop = document.getElementById('aiModalBackdrop');
+
+        function openAIModal() {
+            aiModal.classList.add('show');
+            document.body.style.overflow = 'hidden';
+            // 聚焦到输入框
+            setTimeout(() => document.getElementById('chatInput').focus(), 100);
+        }
+
+        function closeAIModal() {
+            aiModal.classList.remove('show');
+            document.body.style.overflow = '';
+        }
+
+        aiFab.addEventListener('click', openAIModal);
+        aiModalClose.addEventListener('click', closeAIModal);
+        aiModalBackdrop.addEventListener('click', closeAIModal);
+
+        // ESC 键关闭模态框
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && aiModal.classList.contains('show')) {
+                closeAIModal();
+            }
+        });
+
+        // 工具函数
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function getPriorityText(priority) {
+            const map = { high: '高', medium: '中', low: '低' };
+            return map[priority] || priority;
+        }
+
+        // 事件绑定
+        document.getElementById('addForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const input = document.getElementById('todoInput');
+            const priority = document.getElementById('prioritySelect').value;
+            if (input.value.trim()) {
+                // 默认不使用 AI 优化
+                addTodo(input.value.trim(), priority, false);
+            }
+        });
+
+        document.getElementById('chatForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const input = document.getElementById('chatInput');
+            if (input.value.trim()) {
+                askAI(input.value.trim());
+                input.value = '';
+            }
+        });
+
+        // 过滤按钮
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentFilter = btn.dataset.filter;
+                loadTodos();
+            });
+        });
+
+        // 初始加载
+        loadTodos();
+    </script>
+</body>
+</html>
