@@ -5,6 +5,7 @@
 
 import os
 import asyncio
+from datetime import datetime
 from dataclasses import dataclass, field
 from typing import Optional, List, Dict
 from openai import OpenAI
@@ -15,7 +16,6 @@ from .prompts import (
     PROMPT_TASK_ADDED,
     PROMPT_SUGGEST_ENHANCED,
 )
-from .task_analyzer import TaskAnalyzer, TaskCategory, EmotionResult
 
 
 @dataclass
@@ -146,36 +146,42 @@ class EmotionEngine:
         return await asyncio.gather(*tasks)
 
 
-def _enhance_context_with_analysis(**context) -> dict:
-    """使用 TaskAnalyzer 增强上下文
+def _get_time_context() -> str:
+    """获取当前时段
+
+    Returns:
+        时段描述
+    """
+    hour = datetime.now().hour
+
+    if 6 <= hour < 9:
+        return "早晨"
+    elif 9 <= hour < 12:
+        return "上午"
+    elif 12 <= hour < 14:
+        return "中午"
+    elif 14 <= hour < 18:
+        return "下午"
+    elif 18 <= hour < 22:
+        return "晚上"
+    else:
+        return "深夜"
+
+
+def _prepare_context(**context) -> dict:
+    """准备上下文，添加时段等辅助信息
 
     Args:
         **context: 原始上下文
 
     Returns:
-        增强后的上下文（包含任务分类、情绪检测、时段）
+        增强后的上下文
     """
-    analyzer = TaskAnalyzer()
     enhanced = context.copy()
 
-    # 如果有 task_text，进行分析
-    if "task_text" in context:
-        analysis = analyzer.analyze(context["task_text"])
-
-        # 添加任务分类
-        if "task_category" not in enhanced:
-            category = analysis["category"]
-            enhanced["task_category"] = category.value
-
-        # 添加情绪检测
-        if "anxiety_level" not in enhanced:
-            emotion = analysis["emotion"]
-            enhanced["anxiety_level"] = emotion.anxiety_level
-            enhanced["anxiety_keywords"] = ", ".join(emotion.keywords) if emotion.keywords else "无"
-
-        # 添加时段（如果没有明确指定）
-        if "time_context" not in enhanced:
-            enhanced["time_context"] = analysis["time_context"]
+    # 添加时段（如果没有明确指定）
+    if "time_context" not in enhanced:
+        enhanced["time_context"] = _get_time_context()
 
     return enhanced
 
@@ -195,8 +201,8 @@ def trigger_emotion(scenario: EmotionScenario, **context) -> str:
     """
     from todo.ai import get_ai_handler
 
-    # 增强上下文（添加任务分类、情绪检测、时段）
-    enhanced_context = _enhance_context_with_analysis(**context)
+    # 准备上下文（添加时段等辅助信息）
+    enhanced_context = _prepare_context(**context)
 
     # 格式化提示词
     prompt = scenario.prompt_template.format(**enhanced_context)
