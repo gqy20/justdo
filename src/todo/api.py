@@ -60,6 +60,10 @@ app = FastAPI(
 )
 
 
+# 默认端口配置
+DEFAULT_PORT = 8848
+
+
 def get_manager() -> TodoManager:
     """获取 TodoManager 实例"""
     return TodoManager()
