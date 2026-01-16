@@ -103,7 +103,7 @@ def main():
     )
 
     # list 命令
-    list_parser = subparsers.add_parser("list", help="列出所有任务")
+    list_parser = subparsers.add_parser("list", help="列出任务")
     list_parser.add_argument(
         "-s", "--sort",
         choices=["p", "i"],
@@ -111,14 +111,14 @@ def main():
         help="排序: p=优先级, i=ID (默认 i)"
     )
     list_parser.add_argument(
+        "--all",
+        action="store_true",
+        help="显示所有任务（包括已完成）"
+    )
+    list_parser.add_argument(
         "--done",
         action="store_true",
         help="只显示已完成的任务"
-    )
-    list_parser.add_argument(
-        "--undone",
-        action="store_true",
-        help="只显示未完成的任务"
     )
 
     # done 命令
@@ -206,10 +206,11 @@ def main():
 
         elif args.command == "list":
             todos = manager.list()
-            # 状态过滤
+            # 状态过滤（默认只显示待办）
             if getattr(args, "done", False):
                 todos = [t for t in todos if t.done]
-            elif getattr(args, "undone", False):
+            elif not getattr(args, "all", False):
+                # 默认只显示未完成的任务
                 todos = [t for t in todos if not t.done]
 
             if not todos:
@@ -237,25 +238,39 @@ def main():
                 if todo:
                     _update_profile(todo, 'complete')
 
-            # 使用统一的 AI 反馈（1次调用）
+            # 使用 AI 反馈
             if os.getenv("OPENAI_API_KEY"):
                 try:
                     from .emotion import trigger_cli_feedback
+                    # 重新获取更新后的任务列表
+                    updated_todos = manager.list()
+                    # 计算所有已完成的任务数（不限于本次操作）
+                    total_completed = len([t for t in updated_todos if t.done])
+                    remaining_count = len([t for t in updated_todos if not t.done])
+
+                    # 收集本次完成的任务信息
+                    completed_tasks_info = []
                     for todo_id in todo_ids:
                         todo = next((t for t in all_todos if t.id == todo_id), None)
-                        completed_todos = [t for t in all_todos if t.done and t.id in todo_ids]
-                        remaining_count = len([t for t in all_todos if not t.done])
+                        if todo:
+                            completed_tasks_info.append({
+                                "text": todo.text,
+                                "priority": todo.priority
+                            })
 
-                        feedback = trigger_cli_feedback(
-                            scenario="task_completed",
-                            task_text=todo.text if todo else "",
-                            task_priority=todo.priority if todo else "",
-                            today_completed=len(completed_todos),
-                            today_total=len(all_todos),
-                            remaining_count=remaining_count,
-                        )
-                        print(f"✓ {feedback}")
-                except Exception:
+                    feedback = trigger_cli_feedback(
+                        scenario="task_completed",
+                        task_text="",  # 批量模式下不使用单个任务文本
+                        task_priority="",
+                        today_completed=total_completed,
+                        today_total=len(updated_todos),
+                        remaining_count=remaining_count,
+                        batch_tasks=completed_tasks_info,  # 新增：批量任务信息
+                    )
+                    print(f"✓ {feedback}")
+                except Exception as e:
+                    # 显示错误信息，便于调试
+                    print(f"→ AI 反馈失败: {e}", file=sys.stderr)
                     for todo_id in todo_ids:
                         print(f"→ 任务 [{todo_id}] 已标记为完成")
             else:

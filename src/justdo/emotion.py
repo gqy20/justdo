@@ -371,6 +371,7 @@ def trigger_cli_feedback(
     incomplete_count: int = 0,
     high_priority_count: int = 0,
     tasks_list: str = "",
+    batch_tasks: list = None,
 ) -> str:
     """CLI 简化反馈：直接返回反馈文本（兼容旧 trigger_emotion 接口）
 
@@ -385,6 +386,7 @@ def trigger_cli_feedback(
         incomplete_count: 未完成任务数
         high_priority_count: 高优先级任务数
         tasks_list: 任务列表文本
+        batch_tasks: 批量完成的任务列表 [{"text": "...", "priority": "..."}, ...]
 
     Returns:
         反馈文本字符串
@@ -393,11 +395,37 @@ def trigger_cli_feedback(
 
     # 构建 prompt（根据场景）
     if scenario == "task_completed":
-        prompt = f"""用户刚刚完成了一个任务：
+        # 判断是否是批量完成
+        if batch_tasks and len(batch_tasks) > 1:
+            # 批量完成模式
+            tasks_desc = "\n".join([
+                f"  - {t['text']} (优先级: {t['priority']})"
+                for t in batch_tasks
+            ])
+            prompt = f"""用户刚刚批量完成了 {len(batch_tasks)} 个任务：
+
+{tasks_desc}
+
+- 总进度：已完成 {today_completed} 个任务，共 {today_total} 个任务
+- 剩余任务：{remaining_count} 个
+
+请用一句话（20-35字）给予鼓励或反馈。要求：
+- 肯定用户的执行力和效率
+- 简洁、积极、有温度
+- 如果完成任务较多，强调"效率"和"进步"
+- 最多用 1 个 emoji，放在句末"""
+        else:
+            # 单个任务模式
+            if batch_tasks:
+                task = batch_tasks[0]
+                task_text = task['text']
+                task_priority = task['priority']
+
+            prompt = f"""用户刚刚完成了一个任务：
 - 任务内容：{task_text}
 - 优先级：{task_priority}
-- 今日已完成：{today_completed}/{today_total}
-- 剩余任务：{remaining_count}
+- 总进度：已完成 {today_completed} 个任务，共 {today_total} 个任务
+- 剩余任务：{remaining_count} 个
 
 请用一句话（15-25字）给予鼓励或反馈。要求：简洁、积极、有温度。"""
 
